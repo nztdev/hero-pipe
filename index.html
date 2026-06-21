@@ -9,434 +9,292 @@
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Inter:wght@300;400;500&display=swap" rel="stylesheet"/>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
       --black:   #04040C;
       --indigo:  #4B3BFF;
       --indigo2: #8B7FFF;
       --amber:   #FF9500;
       --amber2:  #FFD166;
+      --teal:    #00D4C8;
       --white:   #F0EEF8;
       --muted:   #6666AA;
     }
+    html { overflow-x: hidden; overflow-y: scroll; -webkit-overflow-scrolling: touch; scroll-behavior: auto; }
+    body { width: 100%; height: 1200vh; background: var(--black); overflow: hidden; }
 
-    html {
-      /* critical: let the html element scroll, not a child div */
-      overflow-x: hidden;
-      overflow-y: scroll;
-      -webkit-overflow-scrolling: touch;
-      scroll-behavior: auto; /* let GSAP handle this */
-    }
-
-    body {
-      width: 100%;
-      background: var(--black);
-      /* tall scroll space */
-      height: 900vh;
-      overflow: hidden; /* body does NOT scroll — html does */
-    }
-
-    /* ── FIXED STAGE: always fullscreen, never moves ── */
     #stage {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100vw;
-      height: 100vh;
-      height: 100dvh; /* dynamic viewport for mobile chrome/safari */
-      overflow: hidden;
-      /* CRITICAL: let touch events pass through to html scroller */
-      touch-action: pan-y;
+      position: fixed; top: 0; left: 0;
+      width: 100vw; height: 100vh; height: 100dvh;
+      overflow: hidden; touch-action: pan-y;
     }
 
     #bg-canvas {
-      position: absolute;
-      inset: 0;
+      position: absolute; inset: 0;
       width: 100%; height: 100%;
-      /* canvas must not eat touch events */
-      touch-action: pan-y;
-      pointer-events: none;
+      touch-action: pan-y; pointer-events: none;
     }
 
     #vignette {
       position: absolute; inset: 0;
-      background: radial-gradient(ellipse 85% 85% at 50% 50%, transparent 35%, rgba(4,4,12,0.78) 100%);
+      background: radial-gradient(ellipse 88% 88% at 50% 50%, transparent 32%, rgba(4,4,12,0.82) 100%);
       pointer-events: none;
-      touch-action: none;
     }
 
     /* ── NAV ── */
     #nav {
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1.4rem 2rem;
-      z-index: 20;
-      pointer-events: all;
+      position: absolute; top: 0; left: 0; right: 0;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 1.4rem 2rem; z-index: 20; pointer-events: all;
     }
-
     .nav-logo {
-      font-family: 'Syne', sans-serif;
-      font-weight: 800; font-size: 1.05rem;
-      letter-spacing: 0.04em;
-      color: var(--white); text-decoration: none;
-      opacity: 0;
+      font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.05rem;
+      letter-spacing: 0.04em; color: var(--white); text-decoration: none; opacity: 0;
     }
     .nav-logo span { color: var(--amber); }
-
-    .nav-right {
-      display: flex; gap: 1.2rem; align-items: center;
-      opacity: 0;
-    }
-
+    .nav-right { display: flex; gap: 1.2rem; align-items: center; opacity: 0; }
     .nav-link {
-      color: rgba(240,238,248,0.42);
-      font-size: 0.82rem; font-weight: 500;
-      text-decoration: none;
-      transition: color 0.2s;
+      color: rgba(240,238,248,0.42); font-size: 0.82rem; font-weight: 500;
+      text-decoration: none; transition: color 0.2s;
     }
     .nav-link:hover { color: var(--white); }
-
-    /* hide nav links on small screens */
     @media (max-width: 560px) { .nav-link { display: none; } }
-
     .nav-btn {
-      background: rgba(75,59,255,0.2);
-      border: 1px solid rgba(75,59,255,0.45);
+      background: rgba(75,59,255,0.2); border: 1px solid rgba(75,59,255,0.45);
       color: var(--white); font-size: 0.82rem; font-weight: 500;
-      padding: 0.45rem 1.1rem; border-radius: 6px;
-      text-decoration: none; transition: background 0.2s;
+      padding: 0.45rem 1.1rem; border-radius: 6px; text-decoration: none; transition: background 0.2s;
     }
     .nav-btn:hover { background: rgba(75,59,255,0.45); }
 
-    /* ── CHAPTER PROGRESS BAR ── */
+    /* ── CHAPTER BAR ── */
     #chapter-bar {
       position: absolute; top: 0; left: 0; right: 0;
-      height: 2px; z-index: 21;
-      background: rgba(255,255,255,0.05);
-      pointer-events: none;
+      height: 2px; z-index: 21; background: rgba(255,255,255,0.04); pointer-events: none;
     }
     #chapter-fill {
-      height: 100%;
+      height: 100%; width: 0%;
       background: linear-gradient(90deg, var(--indigo), var(--amber));
-      width: 0%; transition: width 0.25s ease;
+      transition: width 0.3s ease;
     }
 
-    /* ── UI LAYER ── */
-    #ui {
-      position: absolute; inset: 0;
-      pointer-events: none;
-      touch-action: pan-y;
-    }
+    /* ── UI ── */
+    #ui { position: absolute; inset: 0; pointer-events: none; touch-action: pan-y; }
 
     /* ── HEADLINE PANEL ── */
     #headline-panel {
-      position: absolute;
-      top: 50%; left: 50%;
+      position: absolute; top: 50%; left: 50%;
       transform: translate(-50%, -50%);
-      text-align: center;
-      width: 100%; padding: 0 1.5rem;
-      pointer-events: none;
+      text-align: center; width: 100%; padding: 0 1.5rem; pointer-events: none;
     }
-
     .hl-eyebrow {
       font-family: 'Syne', sans-serif;
-      font-size: clamp(0.6rem, 1.5vw, 0.72rem);
-      font-weight: 700; letter-spacing: 0.2em;
-      text-transform: uppercase; color: var(--amber);
-      margin-bottom: 1rem;
-      opacity: 0; transform: translateY(14px);
+      font-size: clamp(0.6rem, 1.5vw, 0.72rem); font-weight: 700;
+      letter-spacing: 0.22em; text-transform: uppercase; color: var(--amber);
+      margin-bottom: 1rem; opacity: 0; transform: translateY(14px);
     }
-
     .hl-title {
       font-family: 'Syne', sans-serif;
-      font-size: clamp(2rem, 6vw, 4.8rem);
-      font-weight: 800; line-height: 1.06;
-      letter-spacing: -0.025em; color: var(--white);
+      font-size: clamp(2rem, 6vw, 4.8rem); font-weight: 800;
+      line-height: 1.06; letter-spacing: -0.025em; color: var(--white);
       opacity: 0; transform: translateY(22px);
     }
-
     .hl-title em {
       font-style: normal;
       background: linear-gradient(135deg, var(--indigo2) 30%, var(--amber2) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
     }
-
     .hl-sub {
-      margin-top: 1rem;
-      font-size: clamp(0.85rem, 2vw, 1.05rem);
-      font-weight: 300;
-      color: rgba(240,238,248,0.5);
-      max-width: 48ch; margin-left: auto; margin-right: auto;
-      line-height: 1.65;
-      opacity: 0; transform: translateY(12px);
+      margin-top: 1rem; font-size: clamp(0.85rem, 2vw, 1.05rem); font-weight: 300;
+      color: rgba(240,238,248,0.5); max-width: 48ch; margin-left: auto; margin-right: auto;
+      line-height: 1.65; opacity: 0; transform: translateY(12px);
     }
-
     .hl-actions {
-      margin-top: 1.6rem;
-      display: flex; gap: 0.8rem;
+      margin-top: 1.6rem; display: flex; gap: 0.8rem;
       justify-content: center; flex-wrap: wrap;
-      opacity: 0; transform: translateY(12px);
-      pointer-events: all;
+      opacity: 0; transform: translateY(12px); pointer-events: all;
     }
-
     .btn-primary {
       background: var(--indigo); color: var(--white);
-      padding: 0.8rem 2rem; border-radius: 8px;
-      font-weight: 500; font-size: 0.9rem;
-      text-decoration: none; border: none; cursor: pointer;
-      font-family: 'Inter', sans-serif;
+      padding: 0.8rem 2rem; border-radius: 8px; font-weight: 500; font-size: 0.9rem;
+      text-decoration: none; border: none; cursor: pointer; font-family: 'Inter', sans-serif;
       transition: background 0.2s, transform 0.15s;
     }
     .btn-primary:hover { background: var(--indigo2); transform: translateY(-2px); }
-
     .btn-ghost {
       background: transparent; color: rgba(240,238,248,0.6);
-      padding: 0.8rem 2rem; border-radius: 8px;
-      font-weight: 500; font-size: 0.9rem;
-      text-decoration: none;
-      border: 1px solid rgba(255,255,255,0.14);
-      font-family: 'Inter', sans-serif;
-      transition: border-color 0.2s, color 0.2s;
+      padding: 0.8rem 2rem; border-radius: 8px; font-weight: 500; font-size: 0.9rem;
+      text-decoration: none; border: 1px solid rgba(255,255,255,0.14);
+      font-family: 'Inter', sans-serif; transition: border-color 0.2s, color 0.2s;
     }
     .btn-ghost:hover { border-color: rgba(255,255,255,0.35); color: var(--white); }
 
-    /* ── EXTRACTED NODE CARD ── */
+    /* ── EXTRACTED CARD ── */
     #extracted-card {
-      position: absolute;
-      top: 50%; left: 50%;
+      position: absolute; top: 50%; left: 50%;
       transform: translate(-50%, -50%) scale(0.6);
-      opacity: 0;
-      pointer-events: none;
-      z-index: 15;
+      opacity: 0; pointer-events: none; z-index: 15;
       display: flex; flex-direction: column;
-      align-items: center; gap: 1rem;
-      text-align: center;
+      align-items: center; gap: 1rem; text-align: center;
       max-width: 520px; width: 90%;
     }
-
     #extracted-box {
-      background: rgba(10,10,22,0.95);
-      border: 1.5px solid var(--indigo);
-      border-radius: 12px;
-      padding: 0.8rem 1.8rem;
-      font-family: 'Syne', sans-serif;
-      font-size: clamp(0.75rem, 1.5vw, 0.9rem);
-      font-weight: 700; letter-spacing: 0.1em;
-      text-transform: uppercase; color: var(--white);
+      background: rgba(10,10,22,0.95); border: 1.5px solid var(--indigo);
+      border-radius: 12px; padding: 0.8rem 1.8rem;
+      font-family: 'Syne', sans-serif; font-size: clamp(0.72rem, 1.5vw, 0.88rem);
+      font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--white);
       backdrop-filter: blur(14px);
       box-shadow: 0 0 36px rgba(75,59,255,0.5), 0 0 72px rgba(75,59,255,0.18);
-      white-space: nowrap;
+      white-space: nowrap; transition: border-color 0.6s, box-shadow 0.6s;
     }
-
     #extracted-title {
       font-family: 'Syne', sans-serif;
-      font-size: clamp(1.3rem, 3.5vw, 2.2rem);
-      font-weight: 800; line-height: 1.1;
-      color: var(--white); letter-spacing: -0.02em;
+      font-size: clamp(1.3rem, 3.5vw, 2.2rem); font-weight: 800;
+      line-height: 1.1; color: var(--white); letter-spacing: -0.02em;
       opacity: 0; transform: translateY(14px);
     }
-
     #extracted-desc {
-      font-size: clamp(0.83rem, 1.6vw, 0.98rem);
-      font-weight: 300;
-      color: rgba(240,238,248,0.55);
-      line-height: 1.65; max-width: 42ch;
+      font-size: clamp(0.83rem, 1.6vw, 0.98rem); font-weight: 300;
+      color: rgba(240,238,248,0.55); line-height: 1.65; max-width: 42ch;
       opacity: 0; transform: translateY(10px);
     }
 
     /* ── PIPELINE BAR ── */
     #pipeline-bar {
-      position: absolute;
-      bottom: clamp(60px, 10%, 100px);
+      position: absolute; bottom: clamp(55px, 9%, 95px);
       left: 50%; transform: translateX(-50%);
       display: flex; align-items: center;
-      opacity: 0; pointer-events: none; z-index: 5;
-      /* allow horizontal overflow on small screens */
-      max-width: 98vw;
+      opacity: 0; pointer-events: none; z-index: 5; max-width: 98vw;
     }
-
-    .pnode {
-      display: flex; flex-direction: column;
-      align-items: center; gap: 0.35rem;
-    }
-
+    .pnode { display: flex; flex-direction: column; align-items: center; gap: 0.35rem; }
     .pnode-box {
-      background: rgba(10,10,22,0.92);
-      border: 1px solid rgba(75,59,255,0.2);
-      border-radius: 7px;
-      padding: clamp(0.4rem,1vw,0.6rem) clamp(0.5rem,1.5vw,0.9rem);
-      font-family: 'Syne', sans-serif;
-      font-size: clamp(0.55rem, 1.2vw, 0.68rem);
-      font-weight: 700; letter-spacing: 0.07em;
-      text-transform: uppercase; color: var(--white);
+      background: rgba(10,10,22,0.92); border: 1px solid rgba(75,59,255,0.2);
+      border-radius: 7px; padding: clamp(0.4rem,1vw,0.6rem) clamp(0.5rem,1.5vw,0.9rem);
+      font-family: 'Syne', sans-serif; font-size: clamp(0.55rem,1.2vw,0.68rem);
+      font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--white);
       white-space: nowrap; backdrop-filter: blur(8px);
       transition: border-color 0.5s, box-shadow 0.5s, opacity 0.4s, color 0.4s;
     }
-
-    .pnode-box.dimmed { opacity: 0.2; border-color: rgba(75,59,255,0.06) !important; box-shadow: none !important; }
-    .pnode-box.lit    { border-color: var(--indigo); box-shadow: 0 0 18px rgba(75,59,255,0.45); }
-    .pnode-box.lit-amber { border-color: var(--amber); box-shadow: 0 0 18px rgba(255,149,0,0.5); color: var(--amber2); }
-
-    .pnode-label {
-      font-size: clamp(0.5rem, 1vw, 0.58rem);
-      color: var(--muted); letter-spacing: 0.05em;
-      text-transform: uppercase; transition: opacity 0.4s;
-    }
-
+    .pnode-box.dimmed  { opacity: 0.18; border-color: rgba(75,59,255,0.05) !important; box-shadow: none !important; }
+    .pnode-box.lit     { border-color: var(--indigo); box-shadow: 0 0 18px rgba(75,59,255,0.45); }
+    .pnode-box.lit-teal{ border-color: var(--teal);   box-shadow: 0 0 18px rgba(0,212,200,0.45); color: #aafffc; }
+    .pnode-box.lit-amber{ border-color: var(--amber);  box-shadow: 0 0 18px rgba(255,149,0,0.5); color: var(--amber2); }
+    .pnode-box.lit-white{ border-color: #fff;           box-shadow: 0 0 22px rgba(255,255,255,0.5); color: #fff; }
+    .pnode-label { font-size: clamp(0.5rem,1vw,0.58rem); color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; }
     .pconnector {
-      width: clamp(18px, 3vw, 44px); height: 2px;
-      background: rgba(75,59,255,0.14);
-      position: relative; overflow: hidden; flex-shrink: 0;
+      width: clamp(18px,3vw,44px); height: 2px;
+      background: rgba(75,59,255,0.14); position: relative; overflow: hidden; flex-shrink: 0;
     }
-
-    .pconnector.flowing::after {
-      content: '';
-      position: absolute; top: 0; left: -60%;
-      width: 60%; height: 100%;
-      background: linear-gradient(90deg, transparent, var(--indigo2), transparent);
-      animation: flowLine 1.1s linear infinite;
+    .pconnector::after {
+      content: ''; position: absolute; top: 0; left: -60%; width: 60%; height: 100%;
+      opacity: 0; transition: opacity 0.4s;
     }
-    .pconnector.flowing-amber::after {
-      background: linear-gradient(90deg, transparent, var(--amber2), transparent);
-    }
-
+    .pconnector.flowing::after      { background: linear-gradient(90deg,transparent,var(--indigo2),transparent); opacity:1; animation: flowLine 1.1s linear infinite; }
+    .pconnector.flowing-teal::after { background: linear-gradient(90deg,transparent,var(--teal),transparent);   opacity:1; animation: flowLine 0.8s linear infinite; }
+    .pconnector.flowing-amber::after{ background: linear-gradient(90deg,transparent,var(--amber2),transparent); opacity:1; animation: flowLine 1.4s linear infinite; }
+    .pconnector.flowing-white::after{ background: linear-gradient(90deg,transparent,#fff,transparent);           opacity:1; animation: flowLine 0.6s linear infinite; }
     @keyframes flowLine { 0%{left:-60%} 100%{left:100%} }
 
     /* ── PROGRESS DOTS ── */
     #progress-dots {
-      position: absolute;
-      right: 1.2rem; top: 50%;
-      transform: translateY(-50%);
-      display: flex; flex-direction: column; gap: 0.6rem;
-      opacity: 0; transition: opacity 0.8s;
-      pointer-events: all; z-index: 20;
+      position: absolute; right: 1.2rem; top: 50%; transform: translateY(-50%);
+      display: flex; flex-direction: column; gap: 0.55rem;
+      opacity: 0; transition: opacity 0.8s; pointer-events: all; z-index: 20;
     }
     #progress-dots.show { opacity: 1; }
-
     .dot {
-      width: 6px; height: 6px; border-radius: 50%;
-      background: rgba(240,238,248,0.18);
-      border: 1px solid rgba(240,238,248,0.18);
-      cursor: pointer;
-      transition: background 0.4s, transform 0.4s, border-color 0.4s;
+      width: 5px; height: 5px; border-radius: 50%;
+      background: rgba(240,238,248,0.15); border: 1px solid rgba(240,238,248,0.15);
+      cursor: pointer; transition: background 0.4s, transform 0.4s, border-color 0.4s;
     }
-    .dot.active { background: var(--amber); border-color: var(--amber); transform: scale(1.5); }
+    .dot.active { background: var(--amber); border-color: var(--amber); transform: scale(1.6); }
 
     /* ── SCROLL HINT ── */
     #scroll-hint {
-      position: absolute;
-      bottom: clamp(1.2rem, 4vh, 2.5rem);
+      position: absolute; bottom: clamp(1.2rem,4vh,2.5rem);
       left: 50%; transform: translateX(-50%);
-      display: flex; flex-direction: column;
-      align-items: center; gap: 0.45rem;
-      opacity: 0; transition: opacity 0.6s;
-      pointer-events: none; z-index: 20;
+      display: flex; flex-direction: column; align-items: center; gap: 0.45rem;
+      opacity: 0; transition: opacity 0.6s; pointer-events: none; z-index: 20;
     }
     #scroll-hint.show { opacity: 1; }
     #scroll-hint.hide { opacity: 0; }
+    .scroll-hint-text { font-size: 0.64rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+    .scroll-hint-line { width: 1px; height: 32px; background: linear-gradient(to bottom, var(--amber), transparent); animation: scrollPulse 1.8s ease-in-out infinite; }
+    @keyframes scrollPulse { 0%,100%{opacity:0.3;transform:scaleY(0.7)} 50%{opacity:1;transform:scaleY(1)} }
 
-    .scroll-hint-text {
-      font-size: 0.64rem; letter-spacing: 0.18em;
-      text-transform: uppercase; color: var(--muted); font-weight: 500;
-    }
-    .scroll-hint-line {
-      width: 1px; height: 32px;
-      background: linear-gradient(to bottom, var(--amber), transparent);
-      animation: scrollPulse 1.8s ease-in-out infinite;
-    }
-    @keyframes scrollPulse {
-      0%,100%{opacity:0.3;transform:scaleY(0.7)}
-      50%{opacity:1;transform:scaleY(1)}
+    @media (prefers-reduced-motion: reduce) {
+      *,*::before,*::after { animation-duration:0.001ms !important; transition-duration:0.001ms !important; }
     }
   </style>
 </head>
 <body>
+<div id="stage">
+  <canvas id="bg-canvas"></canvas>
+  <div id="vignette"></div>
+  <div id="chapter-bar"><div id="chapter-fill"></div></div>
 
-  <div id="stage">
-    <canvas id="bg-canvas"></canvas>
-    <div id="vignette"></div>
+  <div id="nav">
+    <a href="#" class="nav-logo" id="nav-logo">Hero<span>'s</span>Pipe</a>
+    <div class="nav-right" id="nav-right">
+      <a href="#" class="nav-link">How it works</a>
+      <a href="#" class="nav-link">Features</a>
+      <a href="#" class="nav-btn">Build your hero</a>
+    </div>
+  </div>
 
-    <div id="chapter-bar"><div id="chapter-fill"></div></div>
-
-    <div id="nav">
-      <a href="#" class="nav-logo" id="nav-logo">Hero<span>'s</span>Pipe</a>
-      <div class="nav-right" id="nav-right">
-        <a href="#" class="nav-link">How it works</a>
-        <a href="#" class="nav-link">Features</a>
-        <a href="#" class="nav-btn">Build your hero</a>
+  <div id="ui">
+    <div id="headline-panel">
+      <p class="hl-eyebrow" id="hl-eyebrow"></p>
+      <h1 class="hl-title"  id="hl-title"></h1>
+      <p class="hl-sub"     id="hl-sub"></p>
+      <div class="hl-actions" id="hl-actions" style="display:none">
+        <a href="#" class="btn-primary">Launch HeroPipe</a>
+        <a href="https://github.com" class="btn-ghost" target="_blank" rel="noopener">Star on GitHub ↗</a>
       </div>
     </div>
 
-    <div id="ui">
-
-      <div id="headline-panel">
-        <p class="hl-eyebrow"  id="hl-eyebrow"></p>
-        <h1 class="hl-title"   id="hl-title"></h1>
-        <p class="hl-sub"      id="hl-sub"></p>
-        <div class="hl-actions" id="hl-actions" style="display:none">
-          <a href="#" class="btn-primary">Launch HeroPipe</a>
-          <a href="https://github.com" class="btn-ghost" target="_blank" rel="noopener">Star on GitHub ↗</a>
-        </div>
-      </div>
-
-      <div id="extracted-card">
-        <div id="extracted-box"></div>
-        <div id="extracted-title"></div>
-        <div id="extracted-desc"></div>
-      </div>
-
-      <div id="pipeline-bar">
-        <div class="pnode" id="pn-0"><div class="pnode-box" id="pb-0">Your Idea</div><span class="pnode-label">Input</span></div>
-        <div class="pconnector" id="pc-0"></div>
-        <div class="pnode" id="pn-1"><div class="pnode-box" id="pb-1">Rule Engine</div><span class="pnode-label">Parse</span></div>
-        <div class="pconnector" id="pc-1"></div>
-        <div class="pnode" id="pn-2"><div class="pnode-box" id="pb-2">Theme JSON</div><span class="pnode-label">Configure</span></div>
-        <div class="pconnector" id="pc-2"></div>
-        <div class="pnode" id="pn-3"><div class="pnode-box" id="pb-3">AI Refine</div><span class="pnode-label">Optional</span></div>
-        <div class="pconnector" id="pc-3"></div>
-        <div class="pnode" id="pn-4"><div class="pnode-box" id="pb-4">Hero Scene</div><span class="pnode-label">Output</span></div>
-      </div>
-
+    <div id="extracted-card">
+      <div id="extracted-box"></div>
+      <div id="extracted-title"></div>
+      <div id="extracted-desc"></div>
     </div>
 
-    <div id="progress-dots">
-      <div class="dot" data-ch="0"></div>
-      <div class="dot" data-ch="1"></div>
-      <div class="dot" data-ch="2"></div>
-      <div class="dot" data-ch="3"></div>
-      <div class="dot" data-ch="4"></div>
-      <div class="dot" data-ch="5"></div>
-      <div class="dot" data-ch="6"></div>
+    <div id="pipeline-bar">
+      <div class="pnode" id="pn-0"><div class="pnode-box" id="pb-0">Your Idea</div><span class="pnode-label">Input</span></div>
+      <div class="pconnector" id="pc-0"></div>
+      <div class="pnode" id="pn-1"><div class="pnode-box" id="pb-1">Rule Engine</div><span class="pnode-label">Parse</span></div>
+      <div class="pconnector" id="pc-1"></div>
+      <div class="pnode" id="pn-2"><div class="pnode-box" id="pb-2">Theme JSON</div><span class="pnode-label">Configure</span></div>
+      <div class="pconnector" id="pc-2"></div>
+      <div class="pnode" id="pn-3"><div class="pnode-box" id="pb-3">AI Refine</div><span class="pnode-label">Optional</span></div>
+      <div class="pconnector" id="pc-3"></div>
+      <div class="pnode" id="pn-4"><div class="pnode-box" id="pb-4">Hero Scene</div><span class="pnode-label">Output</span></div>
     </div>
+  </div>
 
-    <div id="scroll-hint">
-      <span class="scroll-hint-text">Scroll to explore</span>
-      <div class="scroll-hint-line"></div>
-    </div>
+  <div id="progress-dots">
+    <div class="dot" data-ch="0"></div>
+    <div class="dot" data-ch="1"></div>
+    <div class="dot" data-ch="2"></div>
+    <div class="dot" data-ch="3"></div>
+    <div class="dot" data-ch="4"></div>
+    <div class="dot" data-ch="5"></div>
+    <div class="dot" data-ch="6"></div>
+  </div>
 
-  </div><!-- /stage -->
+  <div id="scroll-hint">
+    <span class="scroll-hint-text">Scroll to explore</span>
+    <div class="scroll-hint-line"></div>
+  </div>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
 <script>
 gsap.registerPlugin(ScrollTrigger);
-
-/* ═══════════════════════════════════════
-   SCROLLTRIGGER: use html element as scroller
-   This is the key mobile fix — ScrollTrigger
-   must observe the same element that actually
-   scrolls. With html scrolling (not body or a div),
-   we point it at document.documentElement.
-═══════════════════════════════════════ */
 ScrollTrigger.defaults({ scroller: window });
 
 /* ═══════════════════════════════════════
-   THREE.JS SCENE
+   THREE.JS
 ═══════════════════════════════════════ */
 const canvas   = document.getElementById('bg-canvas');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
@@ -449,13 +307,11 @@ const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerH
 camera.position.set(0, 0, 90);
 
 /* ── PARTICLES ── */
-const COUNT = window.innerWidth < 600 ? 1800 : 3200; // fewer on mobile
-const pos   = new Float32Array(COUNT * 3);
-const col   = new Float32Array(COUNT * 3);
-const sz    = new Float32Array(COUNT);
-const cA    = new THREE.Color(0x4B3BFF);
-const cB    = new THREE.Color(0xFF9500);
-const cC    = new THREE.Color(0x9B8FFF);
+const isMobile = window.innerWidth < 600;
+const COUNT    = isMobile ? 1600 : 3000;
+const pos  = new Float32Array(COUNT * 3);
+const col  = new Float32Array(COUNT * 3);
+const sz   = new Float32Array(COUNT);
 
 for (let i = 0; i < COUNT; i++) {
   const r  = 55 + Math.random() * 90;
@@ -464,113 +320,227 @@ for (let i = 0; i < COUNT; i++) {
   pos[i*3]   = r * Math.sin(ph) * Math.cos(th);
   pos[i*3+1] = r * Math.sin(ph) * Math.sin(th);
   pos[i*3+2] = r * Math.cos(ph) - 30;
+  // store base colour as indigo-purple
   const t = Math.random();
-  const c = t < 0.65
-    ? cA.clone().lerp(cC, Math.random())
-    : cA.clone().lerp(cB, (t-0.65)*2.8);
+  const c = new THREE.Color().setHSL(0.68 + t * 0.08, 0.8, 0.5 + t * 0.2);
   col[i*3]   = c.r; col[i*3+1] = c.g; col[i*3+2] = c.b;
-  sz[i] = 0.5 + Math.random() * 1.4;
+  sz[i] = 0.5 + Math.random() * 1.5;
 }
 
 const geo = new THREE.BufferGeometry();
 geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
 geo.setAttribute('color',    new THREE.BufferAttribute(col, 3));
-geo.setAttribute('size',     new THREE.BufferAttribute(sz,  1));
+geo.setAttribute('size',     new THREE.BufferAttribute(sz, 1));
 
+/* Shader with full colour-shift via hue uniform */
 const mat = new THREE.ShaderMaterial({
   uniforms: {
     uTime:    { value: 0 },
     uOpacity: { value: 0 },
-    uFocus:   { value: 0 },
-    uAmber:   { value: 0 },
-    uPulse:   { value: 0 },
+    uFocus:   { value: 0 },   // 0=spread, 1=tight
+    uHue:     { value: 0.68 },// hsl hue for colour shift
+    uSat:     { value: 0.8 }, // saturation
+    uBright:  { value: 0.6 }, // brightness
+    uSpeed:   { value: 1.0 }, // drift speed multiplier
+    uPulse:   { value: 0.0 }, // outward pulse strength
+    uSwirl:   { value: 0.0 }, // rotational swirl
   },
   vertexShader: `
     attribute float size;
-    attribute vec3 color;
-    varying vec3 vColor;
-    varying float vDist;
-    uniform float uTime; uniform float uFocus; uniform float uPulse;
-    void main(){
-      vColor=color;
-      vec3 p=position;
-      p.y+=sin(uTime*0.28+p.x*0.05)*1.2*(1.0-uFocus*0.8);
-      p.x+=cos(uTime*0.18+p.z*0.04)*0.8*(1.0-uFocus*0.7);
-      p=mix(p,p*0.3,uFocus*0.65);
-      p+=normalize(p)*sin(uTime*1.2)*uPulse*3.0;
-      vDist=length(p);
-      vec4 mv=modelViewMatrix*vec4(p,1.0);
-      gl_PointSize=size*(320.0/-mv.z);
-      gl_Position=projectionMatrix*mv;
-    }`,
+    varying vec3 vPos;
+    uniform float uTime, uFocus, uSpeed, uPulse, uSwirl;
+
+    void main() {
+      vec3 p = position;
+      float t = uTime * uSpeed;
+
+      // base drift
+      p.y += sin(t * 0.28 + p.x * 0.05) * 1.4 * (1.0 - uFocus * 0.8);
+      p.x += cos(t * 0.18 + p.z * 0.04) * 1.0 * (1.0 - uFocus * 0.7);
+
+      // swirl (rotation in XZ plane around Y axis)
+      if (uSwirl > 0.0) {
+        float angle = uSwirl * t * 0.4 + length(p.xz) * 0.02;
+        float cx = p.x * cos(angle) - p.z * sin(angle);
+        float cz = p.x * sin(angle) + p.z * cos(angle);
+        p.x = mix(p.x, cx, uSwirl * 0.5);
+        p.z = mix(p.z, cz, uSwirl * 0.5);
+      }
+
+      // focus: pull particles toward centre sphere
+      p = mix(p, p * 0.28, uFocus * 0.68);
+
+      // pulse: breathe outward
+      p += normalize(p) * sin(uTime * 1.1) * uPulse * 4.0;
+
+      vPos = p;
+      vec4 mv = modelViewMatrix * vec4(p, 1.0);
+      gl_PointSize = size * (320.0 / -mv.z);
+      gl_Position  = projectionMatrix * mv;
+    }
+  `,
   fragmentShader: `
-    varying vec3 vColor; varying float vDist;
-    uniform float uOpacity; uniform float uAmber;
-    void main(){
-      vec2 uv=gl_PointCoord-0.5;
-      if(length(uv)>0.5) discard;
-      float a=smoothstep(0.5,0.05,length(uv));
-      vec3 c=mix(vColor,vec3(1.0,0.6,0.0),uAmber*0.65);
-      gl_FragColor=vec4(c,a*uOpacity*smoothstep(160.0,20.0,vDist));
-    }`,
-  transparent:true, depthWrite:false, blending:THREE.AdditiveBlending,
+    varying vec3 vPos;
+    uniform float uOpacity, uHue, uSat, uBright;
+
+    // HSL to RGB
+    vec3 hsl2rgb(float h, float s, float l) {
+      float c = (1.0 - abs(2.0*l - 1.0)) * s;
+      float x = c * (1.0 - abs(mod(h*6.0, 2.0) - 1.0));
+      float m = l - c*0.5;
+      vec3 rgb;
+      if      (h < 1.0/6.0) rgb = vec3(c,x,0);
+      else if (h < 2.0/6.0) rgb = vec3(x,c,0);
+      else if (h < 3.0/6.0) rgb = vec3(0,c,x);
+      else if (h < 4.0/6.0) rgb = vec3(0,x,c);
+      else if (h < 5.0/6.0) rgb = vec3(x,0,c);
+      else                   rgb = vec3(c,0,x);
+      return rgb + m;
+    }
+
+    void main() {
+      vec2 uv = gl_PointCoord - 0.5;
+      float d  = length(uv);
+      if (d > 0.5) discard;
+      float a = smoothstep(0.5, 0.05, d);
+
+      // per-particle hue variation based on position
+      float hVar  = uHue + (vPos.x * 0.002 + vPos.y * 0.001);
+      float dist  = length(vPos);
+      float depth = smoothstep(160.0, 10.0, dist);
+
+      vec3 c = hsl2rgb(mod(hVar, 1.0), uSat, uBright);
+      gl_FragColor = vec4(c, a * uOpacity * depth);
+    }
+  `,
+  transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
 });
 
 const particles = new THREE.Points(geo, mat);
 scene.add(particles);
 
-/* ── NEBULAE ── */
-function nebula(color,x,y,z,scale) {
+/* ── NEBULAE (3 for different colour registers) ── */
+function makeNebula(color, x, y, z, scale) {
   const m = new THREE.ShaderMaterial({
-    uniforms:{ uColor:{value:new THREE.Color(color)}, uOp:{value:0}, uTime:{value:0} },
-    vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
-    fragmentShader:`varying vec2 vUv;uniform vec3 uColor;uniform float uOp,uTime;
-      void main(){vec2 c=vUv-0.5;float d=length(c);float p=sin(uTime*0.45)*0.06+0.94;
-      gl_FragColor=vec4(uColor,smoothstep(0.5*p,0.0,d)*uOp);}`,
+    uniforms: {
+      uColor: { value: new THREE.Color(color) },
+      uOp:    { value: 0 },
+      uTime:  { value: 0 },
+      uPulse: { value: 1.0 },
+    },
+    vertexShader: `varying vec2 vUv; void main(){vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+    fragmentShader: `
+      varying vec2 vUv; uniform vec3 uColor; uniform float uOp,uTime,uPulse;
+      void main(){
+        vec2 c=vUv-0.5; float d=length(c);
+        float pulse = sin(uTime*uPulse)*0.07 + 0.93;
+        float a = smoothstep(0.5*pulse, 0.0, d) * uOp;
+        gl_FragColor = vec4(uColor, a);
+      }`,
     transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, side:THREE.DoubleSide,
   });
-  const mesh=new THREE.Mesh(new THREE.PlaneGeometry(1,1),m);
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1,1), m);
   mesh.position.set(x,y,z); mesh.scale.set(scale,scale,1);
   scene.add(mesh); return mesh;
 }
-const neb1=nebula(0x2215CC,-22,12,-25,130);
-const neb2=nebula(0xFF5500, 28,-8,-30, 90);
-const neb3=nebula(0x3325EE,  0, 0,-15,170);
+
+// indigo nebula (intro/outro)
+const nebI = makeNebula(0x2215CC, -20, 10, -25, 130);
+// teal nebula (theme JSON chapter)
+const nebT = makeNebula(0x00B8B0,  20, -5, -28, 110);
+// amber nebula (AI refine chapter)
+const nebA = makeNebula(0xFF5500,  10, 15, -30, 150);
+// white/bloom nebula (hero scene chapter)
+const nebW = makeNebula(0xCCCCFF,   0,  0, -20, 200);
 
 /* ── GRID ── */
-const grid=new THREE.GridHelper(220,44,0x1a1a3a,0x0c0c1c);
-grid.position.y=-32; grid.material.opacity=0; grid.material.transparent=true;
+const grid = new THREE.GridHelper(240, 48, 0x1a1a3a, 0x0b0b1a);
+grid.position.y = -32; grid.material.opacity = 0; grid.material.transparent = true;
 scene.add(grid);
 
 /* ── LIGHTS ── */
-scene.add(new THREE.AmbientLight(0x111122,1));
-const ptI=new THREE.PointLight(0x4B3BFF,0,130); ptI.position.set(0,20,10); scene.add(ptI);
-const ptA=new THREE.PointLight(0xFF9500,0,130); ptA.position.set(0,-10,18); scene.add(ptA);
+scene.add(new THREE.AmbientLight(0x111122, 1));
+const ptI = new THREE.PointLight(0x4B3BFF, 0, 140); ptI.position.set(0, 20, 10); scene.add(ptI);
+const ptT = new THREE.PointLight(0x00D4C8, 0, 140); ptT.position.set(-15, 0, 15); scene.add(ptT);
+const ptA = new THREE.PointLight(0xFF9500, 0, 140); ptA.position.set(10, -10, 18); scene.add(ptA);
+const ptW = new THREE.PointLight(0xFFFFFF, 0, 140); ptW.position.set(0, 0, 30); scene.add(ptW);
 
-const S={camZ:90,camY:0,pOp:0,pFocus:0,pAmber:0,pPulse:0,n1:0,n2:0,n3:0,gridOp:0,ptI:0,ptA:0};
+/* ── SCENE STATE — all GSAP-driven ── */
+const S = {
+  // camera
+  camZ: 90, camY: 0, camX: 0, fov: 60,
+  rotY: 0, rotX: 0,
+  // particles
+  pOp: 0, pFocus: 0,
+  pHue: 0.68, pSat: 0.8, pBright: 0.6,
+  pSpeed: 1.0, pPulse: 0, pSwirl: 0,
+  // nebulae
+  nI: 0, nT: 0, nA: 0, nW: 0,
+  // grid
+  gridOp: 0,
+  // lights
+  liI: 0, liT: 0, liA: 0, liW: 0,
+  // bg clear colour (rgb 0-1)
+  bgR: 0.016, bgG: 0.016, bgB: 0.047,
+};
 
-/* ═══════════════════════════════════════
-   NODE DATA
-═══════════════════════════════════════ */
-const NODES=[
-  {id:0,label:'Your Idea',   tag:'Input',     title:'It starts with a single sentence',      desc:'Describe what you\'re building — a community platform, a SaaS tool, a creative portfolio. One sentence is enough for HeroPipe to begin.',color:'indigo'},
-  {id:1,label:'Rule Engine', tag:'Parse',     title:'Instant mapping. Zero API calls.',       desc:'The rule engine reads your input locally and maps it to a theme, camera path, particle system, and colour palette. Runs in your browser. Always free.',color:'indigo'},
-  {id:2,label:'Theme JSON',  tag:'Configure', title:'Everything is data-driven',              desc:'The entire hero scene is defined by a single JSON object — particles, camera choreography, scroll chapters, transitions. Change the JSON, change the experience.',color:'indigo'},
-  {id:3,label:'AI Refine',   tag:'Optional',  title:'A creative director, not a code gen',   desc:'Gemini reads the engine\'s full capability manifest before suggesting anything. It can only recommend what actually exists — no hallucinated effects, no broken output.',color:'amber'},
-  {id:4,label:'Hero Scene',  tag:'Output',    title:'One file. Live anywhere.',               desc:'Download a single self-contained HTML file. Drop it on GitHub Pages, Netlify, or Vercel. Zero dependencies. Zero lock-in. Yours forever.',color:'indigo'},
+/* ══════════════════════════════════════════════════
+   NODE DATA — each with its own visual descriptor
+══════════════════════════════════════════════════ */
+const NODES = [
+  {
+    id: 0, label: 'Your Idea', tag: 'Input',
+    title: 'It starts with a single sentence',
+    desc: 'Describe what you\'re building — a community, a SaaS tool, a creative portfolio. One sentence is enough for HeroPipe to begin.',
+    boxColor: 'lit', connClass: 'flowing',
+    // Scene feel: cool indigo, contemplative, wide and sparse
+    scene: { pHue:0.68, pSat:0.75, pBright:0.55, pSpeed:0.7, pFocus:0.2, pSwirl:0, nI:0.20, nT:0, nA:0, nW:0, camZ:42, camY:5, gridOp:0.1, liI:1.4, liT:0, liA:0, liW:0, bgR:0.016,bgG:0.016,bgB:0.06 },
+  },
+  {
+    id: 1, label: 'Rule Engine', tag: 'Parse',
+    title: 'Instant mapping. Zero API calls.',
+    desc: 'The rule engine reads your input locally and maps it to a theme, camera path, particle system, and colour palette. Always free. Always instant.',
+    boxColor: 'lit', connClass: 'flowing',
+    // Scene feel: electric blue-white, fast, tight — precision
+    scene: { pHue:0.62, pSat:0.95, pBright:0.72, pSpeed:2.2, pFocus:0.5, pSwirl:0.3, nI:0.10, nT:0, nA:0, nW:0.08, camZ:22, camY:8, gridOp:0.35, liI:0.6, liT:0, liA:0, liW:1.8, bgR:0.012,bgG:0.012,bgB:0.07 },
+  },
+  {
+    id: 2, label: 'Theme JSON', tag: 'Configure',
+    title: 'Everything is data-driven',
+    desc: 'The entire hero scene lives in a single JSON object — particles, camera choreography, scroll chapters, colour palettes. Change the data, change the experience.',
+    boxColor: 'lit-teal', connClass: 'flowing-teal',
+    // Scene feel: teal shift, lateral sway, structured layers — clarity
+    scene: { pHue:0.50, pSat:0.85, pBright:0.60, pSpeed:1.1, pFocus:0.55, pSwirl:0.1, nI:0.05, nT:0.28, nA:0, nW:0, camZ:28, camY:-4, gridOp:0.55, liI:0.2, liT:2.5, liA:0, liW:0, bgR:0.01,bgG:0.04,bgB:0.05 },
+  },
+  {
+    id: 3, label: 'AI Refine', tag: 'Optional',
+    title: 'A creative director, not a code generator',
+    desc: 'Gemini reads the engine\'s full capability manifest before suggesting anything. It can only recommend what actually exists — no hallucinated effects, no broken output.',
+    boxColor: 'lit-amber', connClass: 'flowing-amber',
+    // Scene feel: amber bloom, deep push, slow swirl — intelligence, depth
+    scene: { pHue:0.08, pSat:0.90, pBright:0.58, pSpeed:0.6, pFocus:0.78, pSwirl:0.7, nI:0, nT:0, nA:0.40, nW:0, camZ:14, camY:0, gridOp:0.20, liI:0, liT:0, liA:4.0, liW:0, bgR:0.05,bgG:0.02,bgB:0.01 },
+  },
+  {
+    id: 4, label: 'Hero Scene', tag: 'Output',
+    title: 'One file. Live anywhere.',
+    desc: 'Download a single self-contained HTML file. Drop it on GitHub Pages, Netlify, or Vercel. Zero dependencies. Zero lock-in. Yours forever.',
+    boxColor: 'lit-white', connClass: 'flowing-white',
+    // Scene feel: white bloom explosion, pull back wide, maximum energy — payoff
+    scene: { pHue:0.70, pSat:0.40, pBright:0.85, pSpeed:1.8, pFocus:0.15, pSwirl:0.2, nI:0.10, nT:0.10, nA:0.10, nW:0.50, camZ:35, camY:-6, gridOp:0.70, liI:1.0, liT:1.0, liA:1.0, liW:3.5, bgR:0.02,bgG:0.02,bgB:0.07 },
+  },
 ];
 
-const HEADLINES=[
-  {eyebrow:'Scroll-driven hero sections — free, forever', title:'Your first second\nis your <em>first impression</em>', sub:'HeroPipe turns your idea into a cinematic scroll-driven hero in minutes. No design team. No budget. No compromise.',cta:false},
-  null,null,null,null,null,
-  {eyebrow:'Ready to build',title:'Your hero is <em>waiting</em>',sub:'Free on GitHub Pages. No account. No credit card. No expiry date on "free."',cta:true},
+const HEADLINES = [
+  { eyebrow: 'Scroll-driven hero sections — free, forever', title: 'Your first second\nis your <em>first impression</em>', sub: 'HeroPipe turns your idea into a cinematic, scroll-driven hero in minutes. No design team. No budget. No compromise.', cta: false },
+  null, null, null, null, null,
+  { eyebrow: 'Ready to build', title: 'Your hero is <em>waiting</em>', sub: 'Free on GitHub Pages. No account. No credit card. No expiry date on "free."', cta: true },
 ];
 
 /* ── DOM REFS ── */
 const pipelineBar  = document.getElementById('pipeline-bar');
-const pboxes       = NODES.map(n=>document.getElementById(`pb-${n.id}`));
-const pnodes       = NODES.map(n=>document.getElementById(`pn-${n.id}`));
-const pconns       = [0,1,2,3].map(i=>document.getElementById(`pc-${i}`));
+const pboxes       = NODES.map(n => document.getElementById(`pb-${n.id}`));
+const pnodes_el    = NODES.map(n => document.getElementById(`pn-${n.id}`));
+const pconns       = [0,1,2,3].map(i => document.getElementById(`pc-${i}`));
 const extractCard  = document.getElementById('extracted-card');
 const extractBox   = document.getElementById('extracted-box');
 const extractTitle = document.getElementById('extracted-title');
@@ -582,221 +552,356 @@ const hlActions    = document.getElementById('hl-actions');
 const dots         = document.querySelectorAll('.dot');
 const chFill       = document.getElementById('chapter-fill');
 
-/* ── HEADLINE HELPERS ── */
-function setHeadline(idx){
-  const h=HEADLINES[idx]; if(!h)return;
-  hlEyebrow.textContent=h.eyebrow;
-  hlTitle.innerHTML=h.title.replace(/\n/g,'<br>');
-  hlSub.textContent=h.sub;
-  hlActions.style.display=h.cta?'flex':'none';
+/* ═══════════════════════════════════════
+   SCENE TRANSITIONS
+   Each node chapter smoothly tweens the
+   entire scene state to its visual register
+═══════════════════════════════════════ */
+function transitionScene(nodeIdx, duration = 1.8) {
+  const sc = NODES[nodeIdx].scene;
+  gsap.to(S, {
+    pHue: sc.pHue, pSat: sc.pSat, pBright: sc.pBright,
+    pSpeed: sc.pSpeed, pFocus: sc.pFocus, pSwirl: sc.pSwirl,
+    pPulse: 0,
+    nI: sc.nI, nT: sc.nT, nA: sc.nA, nW: sc.nW,
+    camZ: sc.camZ, camY: sc.camY,
+    gridOp: sc.gridOp,
+    liI: sc.liI, liT: sc.liT, liA: sc.liA, liW: sc.liW,
+    bgR: sc.bgR, bgG: sc.bgG, bgB: sc.bgB,
+    duration, ease: 'power2.inOut',
+  });
 }
 
-function showHeadline(delay=0){
-  const els=[hlEyebrow,hlTitle,hlSub];
-  if(hlActions.style.display!=='none') els.push(hlActions);
-  gsap.fromTo(els,{y:20,opacity:0},{y:0,opacity:1,duration:0.85,stagger:0.1,ease:'power3.out',delay});
+/* scene breathe: subtle looping animation while a card is held */
+let breatheTween = null;
+function startBreathe(nodeIdx) {
+  stopBreathe();
+  const sc = NODES[nodeIdx].scene;
+  // gentle pulse of camera Z and particle brightness
+  breatheTween = gsap.to(S, {
+    camZ: sc.camZ + (nodeIdx === 3 ? -3 : 4), // push in for AI, out for others
+    pBright: sc.pBright + 0.08,
+    pPulse: nodeIdx === 3 ? 0.4 : 0.15,
+    duration: 2.5,
+    ease: 'sine.inOut',
+    yoyo: true,
+    repeat: -1,
+  });
 }
 
-function hideHeadline(fast=false){
-  gsap.to([hlEyebrow,hlTitle,hlSub,hlActions],{y:-12,opacity:0,duration:fast?0.22:0.4,ease:'power2.in'});
+function stopBreathe() {
+  if (breatheTween) { breatheTween.kill(); breatheTween = null; }
+  gsap.to(S, { pPulse: 0, duration: 0.6 });
 }
 
-/* ── EXTRACTION ── */
-let currentChapter=-1, extractedNode=-1;
+/* return to intro scene state (full circle) */
+function transitionToIntro(duration = 2.2) {
+  stopBreathe();
+  gsap.to(S, {
+    pHue: 0.68, pSat: 0.8, pBright: 0.6, pSpeed: 1.0,
+    pFocus: 0.1, pSwirl: 0, pPulse: 0,
+    nI: 0.12, nT: 0, nA: 0, nW: 0,
+    camZ: 55, camY: 0,
+    gridOp: 0,
+    liI: 1.0, liT: 0, liA: 0, liW: 0,
+    bgR: 0.016, bgG: 0.016, bgB: 0.047,
+    duration, ease: 'power2.inOut',
+  });
+}
 
-function extractNode(nodeIdx){
-  if(extractedNode===nodeIdx)return;
-  extractedNode=nodeIdx;
-  const nd=NODES[nodeIdx];
+/* ═══════════════════════════════════════
+   HEADLINE HELPERS
+═══════════════════════════════════════ */
+function setHeadline(idx) {
+  const h = HEADLINES[idx]; if (!h) return;
+  hlEyebrow.textContent = h.eyebrow;
+  hlTitle.innerHTML = h.title.replace(/\n/g, '<br>');
+  hlSub.textContent = h.sub;
+  hlActions.style.display = h.cta ? 'flex' : 'none';
+}
+function showHeadline(delay = 0) {
+  const els = [hlEyebrow, hlTitle, hlSub];
+  if (hlActions.style.display !== 'none') els.push(hlActions);
+  gsap.fromTo(els, { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.9, stagger: 0.1, ease: 'power3.out', delay });
+}
+function hideHeadline(fast = false) {
+  gsap.to([hlEyebrow, hlTitle, hlSub, hlActions], { y: -12, opacity: 0, duration: fast ? 0.22 : 0.4, ease: 'power2.in' });
+}
 
-  pboxes.forEach((b,i)=>{
-    b.classList.remove('dimmed','lit','lit-amber');
-    if(i!==nodeIdx) b.classList.add('dimmed');
-    else b.classList.add(nd.color==='amber'?'lit-amber':'lit');
+/* ═══════════════════════════════════════
+   EXTRACTION MECHANIC
+═══════════════════════════════════════ */
+let currentChapter = -1;
+let extractedNode  = -1;
+
+function extractNode(nodeIdx) {
+  if (extractedNode === nodeIdx) return;
+  extractedNode = nodeIdx;
+  const nd = NODES[nodeIdx];
+
+  // Dim all other pipeline nodes; light the active one
+  pboxes.forEach((b, i) => {
+    b.classList.remove('dimmed', 'lit', 'lit-teal', 'lit-amber', 'lit-white');
+    if (i !== nodeIdx) b.classList.add('dimmed');
+    else b.classList.add(nd.boxColor);
   });
 
-  extractBox.textContent=nd.label;
-  const isAmber=nd.color==='amber';
-  extractBox.style.borderColor=isAmber?'var(--amber)':'var(--indigo)';
-  extractBox.style.boxShadow=isAmber
-    ?'0 0 36px rgba(255,149,0,0.55),0 0 72px rgba(255,149,0,0.18)'
-    :'0 0 36px rgba(75,59,255,0.55),0 0 72px rgba(75,59,255,0.18)';
-  extractTitle.textContent=nd.title;
-  extractDesc.textContent=nd.desc;
-  gsap.set([extractTitle,extractDesc],{y:14,opacity:0});
+  // Update connectors
+  pconns.forEach((c, i) => {
+    c.classList.remove('flowing', 'flowing-teal', 'flowing-amber', 'flowing-white');
+    if (i < nodeIdx) c.classList.add(nd.connClass);
+  });
 
-  /* fly from pipeline node position */
-  const rect=pnodes[nodeIdx].getBoundingClientRect();
-  const startY=rect.top+rect.height/2-window.innerHeight/2;
+  // Populate card
+  extractBox.textContent = nd.label;
+  extractTitle.textContent = nd.title;
+  extractDesc.textContent = nd.desc;
+
+  // Colour the card border/glow to match node theme
+  const colors = {
+    'lit':       ['var(--indigo)', '75,59,255'],
+    'lit-teal':  ['var(--teal)',   '0,212,200'],
+    'lit-amber': ['var(--amber)',  '255,149,0'],
+    'lit-white': ['#ffffff',       '255,255,255'],
+  };
+  const [borderCol, rgb] = colors[nd.boxColor];
+  extractBox.style.borderColor = borderCol;
+  extractBox.style.boxShadow   = `0 0 36px rgba(${rgb},0.55), 0 0 80px rgba(${rgb},0.18)`;
+
+  gsap.set([extractTitle, extractDesc], { y: 14, opacity: 0 });
+
+  // Fly from pipeline node position
+  const rect   = pnodes_el[nodeIdx].getBoundingClientRect();
+  const startY = rect.top + rect.height / 2 - window.innerHeight / 2;
 
   gsap.fromTo(extractCard,
-    {opacity:0,scale:0.5,y:startY},
-    {opacity:1,scale:1,y:0,duration:0.7,ease:'back.out(1.4)',
-      onComplete:()=>{
-        gsap.to(extractTitle,{y:0,opacity:1,duration:0.5,ease:'power3.out'});
-        gsap.to(extractDesc, {y:0,opacity:1,duration:0.5,ease:'power3.out',delay:0.1});
+    { opacity: 0, scale: 0.5, y: startY },
+    {
+      opacity: 1, scale: 1, y: 0, duration: 0.75, ease: 'back.out(1.4)',
+      onComplete: () => {
+        gsap.to(extractTitle, { y: 0, opacity: 1, duration: 0.5, ease: 'power3.out' });
+        gsap.to(extractDesc,  { y: 0, opacity: 1, duration: 0.5, ease: 'power3.out', delay: 0.1 });
+        // Start breathing animation once card is settled
+        startBreathe(nodeIdx);
       }
     }
   );
+
+  // Transition scene to this node's visual register
+  transitionScene(nodeIdx, 1.6);
 }
 
-function returnNode(cb){
-  if(extractedNode===-1){if(cb)cb();return;}
-  const nodeIdx=extractedNode;
-  const rect=pnodes[nodeIdx].getBoundingClientRect();
-  const endY=rect.top+rect.height/2-window.innerHeight/2;
+function returnNode(cb) {
+  if (extractedNode === -1) { if (cb) cb(); return; }
+  stopBreathe();
+  const nodeIdx = extractedNode;
 
-  gsap.to([extractTitle,extractDesc],{y:8,opacity:0,duration:0.28,ease:'power2.in'});
-  gsap.to(extractCard,{
-    opacity:0,scale:0.5,y:endY,
-    duration:0.55,ease:'back.in(1.2)',delay:0.12,
-    onComplete:()=>{
-      gsap.set(extractCard,{y:0});
-      extractedNode=-1;
-      pboxes.forEach((b,i)=>{b.classList.remove('dimmed'); if(i<=nodeIdx)b.classList.add('lit');});
-      if(cb)cb();
+  const rect = pnodes_el[nodeIdx].getBoundingClientRect();
+  const endY  = rect.top + rect.height / 2 - window.innerHeight / 2;
+
+  gsap.to([extractTitle, extractDesc], { y: 8, opacity: 0, duration: 0.28, ease: 'power2.in' });
+  gsap.to(extractCard, {
+    opacity: 0, scale: 0.5, y: endY,
+    duration: 0.6, ease: 'back.in(1.2)', delay: 0.1,
+    onComplete: () => {
+      gsap.set(extractCard, { y: 0 });
+      extractedNode = -1;
+      pboxes.forEach(b => b.classList.remove('dimmed', 'lit', 'lit-teal', 'lit-amber', 'lit-white'));
+      if (cb) cb();
     }
   });
 }
 
-function showPipeline(cb){
-  gsap.to(pipelineBar,{opacity:1,duration:0.6,ease:'power2.out',onComplete:cb});
+function showPipeline(cb) {
+  gsap.to(pipelineBar, { opacity: 1, duration: 0.7, ease: 'power2.out', onComplete: cb });
 }
 
-function hidePipeline(){
-  gsap.to(pipelineBar,{opacity:0,duration:0.5});
-  if(extractedNode!==-1){
-    gsap.to(extractCard,{opacity:0,scale:0.5,duration:0.35});
-    extractedNode=-1;
+function hidePipeline() {
+  gsap.to(pipelineBar, { opacity: 0, duration: 0.5 });
+  if (extractedNode !== -1) {
+    stopBreathe();
+    gsap.to(extractCard, { opacity: 0, scale: 0.5, duration: 0.35 });
+    extractedNode = -1;
   }
-  pboxes.forEach(b=>b.classList.remove('dimmed','lit','lit-amber'));
-  pconns.forEach(c=>c.classList.remove('flowing','flowing-amber'));
+  pboxes.forEach(b => b.classList.remove('dimmed','lit','lit-teal','lit-amber','lit-white'));
+  pconns.forEach(c => c.classList.remove('flowing','flowing-teal','flowing-amber','flowing-white'));
 }
 
-/* ── CHAPTER TRANSITIONS ── */
-function goToChapter(idx){
-  if(idx===currentChapter)return;
-  const prev=currentChapter;
-  currentChapter=idx;
+/* ═══════════════════════════════════════
+   CHAPTER LOGIC
+═══════════════════════════════════════ */
+function goToChapter(idx) {
+  if (idx === currentChapter) return;
+  const prev = currentChapter;
+  currentChapter = idx;
 
-  dots.forEach((d,i)=>d.classList.toggle('active',i===idx));
-  chFill.style.width=((idx/6)*100)+'%';
+  dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+  chFill.style.width = ((idx / 6) * 100) + '%';
 
-  const hint=document.getElementById('scroll-hint');
-  if(idx>0){hint.classList.remove('show');hint.classList.add('hide');}
-  else{hint.classList.add('show');hint.classList.remove('hide');}
+  const hint = document.getElementById('scroll-hint');
+  if (idx > 0) { hint.classList.remove('show'); hint.classList.add('hide'); }
+  else          { hint.classList.add('show'); hint.classList.remove('hide'); }
 
   /* INTRO */
-  if(idx===0){
-    if(extractedNode!==-1||prev>0)hidePipeline();
-    if(prev>0)hideHeadline();
+  if (idx === 0) {
+    if (prev > 0) hidePipeline();
+    if (prev > 0) hideHeadline();
+    transitionToIntro(1.8);
     setHeadline(0);
-    setTimeout(()=>showHeadline(0),prev<=0?600:350);
+    setTimeout(() => showHeadline(0), prev <= 0 ? 600 : 500);
     return;
   }
 
   /* CTA */
-  if(idx===6){
-    if(extractedNode!==-1){returnNode(()=>setTimeout(()=>hidePipeline(),150));}
+  if (idx === 6) {
+    if (extractedNode !== -1) returnNode(() => setTimeout(() => hidePipeline(), 200));
     else hidePipeline();
+    stopBreathe();
     hideHeadline();
+    transitionToIntro(2.0); // full circle — back to opening atmosphere
     setHeadline(6);
-    setTimeout(()=>showHeadline(0),420);
+    setTimeout(() => showHeadline(0), 500);
     return;
   }
 
-  /* NODE CHAPTERS 1-5 */
-  const nodeIdx=idx-1;
-  if(prev===0||prev===6){
-    if(prev===0)hideHeadline(true);
-    showPipeline(()=>setTimeout(()=>extractNode(nodeIdx),150));
+  /* NODE CHAPTERS 1–5 */
+  const nodeIdx = idx - 1;
+
+  if (prev === 0 || prev === 6) {
+    if (prev === 0) hideHeadline(true);
+    showPipeline(() => setTimeout(() => extractNode(nodeIdx), 180));
     return;
   }
-  if(extractedNode!==-1&&extractedNode!==nodeIdx){
-    returnNode(()=>setTimeout(()=>extractNode(nodeIdx),160));
-  } else if(extractedNode===-1){
+
+  // Moving between node chapters
+  if (extractedNode !== -1 && extractedNode !== nodeIdx) {
+    returnNode(() => setTimeout(() => extractNode(nodeIdx), 180));
+  } else if (extractedNode === -1) {
     extractNode(nodeIdx);
   }
 }
 
-/* ── CHAPTER BOUNDS (900vh → 7 chapters) ── */
-const CB=[0,0.12,0.25,0.38,0.52,0.66,0.80,1.0];
-function pToChapter(p){for(let i=0;i<CB.length-1;i++){if(p<CB[i+1])return i;}return 6;}
+/* ═══════════════════════════════════════
+   SCROLL → CHAPTERS
+   1200vh / 7 chapters
+   Each node chapter is wider to allow breathing
+   Intro: 0–0.10
+   Nodes: 0.10–0.82 (each ~0.14)
+   CTA:   0.82–1.0
+═══════════════════════════════════════ */
+const CB = [0, 0.10, 0.24, 0.38, 0.52, 0.66, 0.80, 1.0];
+function pToChapter(p) {
+  for (let i = 0; i < CB.length - 1; i++) { if (p < CB[i+1]) return i; }
+  return 6;
+}
 
-/* ── GSAP SCROLL TIMELINE ── */
-const tl=gsap.timeline({
-  scrollTrigger:{
-    trigger:document.body,
-    start:'top top',
-    end:'bottom bottom',
-    scrub:1.4,
-    onUpdate(self){
-      const p=self.progress;
-      goToChapter(pToChapter(p));
-      const ch=pToChapter(p);
-      if(ch>=1&&ch<=5){
-        const n=ch-1;
-        pconns.forEach((c,i)=>{
-          c.classList.remove('flowing','flowing-amber');
-          if(i<n) c.classList.add(n===3&&i===2?'flowing-amber':'flowing');
-        });
+/* ── GSAP SCROLL TIMELINE for raw scene state ──
+   This runs in parallel with the chapter logic.
+   It handles the continuous scrubbed values
+   (camera position, particle opacity) during
+   transitions between chapters where GSAP tweens
+   from goToChapter() aren't running yet.
+   The chapter tweens take priority once fired.
+── */
+const scrollTl = gsap.timeline({
+  scrollTrigger: {
+    trigger: document.body,
+    start: 'top top',
+    end: 'bottom bottom',
+    scrub: 1.6,
+    onUpdate(self) {
+      const p  = self.progress;
+      const ch = pToChapter(p);
+      goToChapter(ch);
+
+      // Particle opacity: fade in by 10% scroll
+      if (p < 0.10) {
+        S.pOp = gsap.utils.mapRange(0, 0.10, 0, 1, p);
+      } else if (p > 0.88) {
+        // fade slightly toward CTA
+        S.pOp = gsap.utils.mapRange(0.88, 1.0, 1, 0.7, p);
+      } else {
+        S.pOp = 1;
       }
     }
   }
 });
 
-tl
-  .to(S,{camZ:55,pOp:1,n3:0.18,ptI:1.2,duration:0.12},0)
-  .to(S,{camZ:38,camY:4,pFocus:0.25,n1:0.15,ptI:1.8,duration:0.13},0.12)
-  .to(S,{camZ:22,camY:6,pFocus:0.45,gridOp:0.2,n1:0.28,duration:0.13},0.25)
-  .to(S,{camZ:18,camY:4,pFocus:0.6,gridOp:0.4,n3:0.28,duration:0.14},0.38)
-  .to(S,{camZ:12,camY:0,pFocus:0.75,pAmber:0.6,n2:0.3,ptA:2.5,ptI:0.4,duration:0.14},0.52)
-  .to(S,{camZ:22,camY:-4,pFocus:0.88,pAmber:1.0,n2:0.5,ptA:4.0,gridOp:0.6,pPulse:0.6,duration:0.14},0.66)
-  .to(S,{camZ:45,camY:0,pFocus:0.5,pAmber:0.7,pPulse:0,ptA:2.0,gridOp:0.3,duration:0.20},0.80);
+/* Camera Z gentle arc across full scroll for continuity */
+scrollTl
+  .fromTo(S, { camZ: 90 }, { camZ: 55, duration: 0.10, ease: 'power2.out' }, 0)
+  .to(S, { camZ: 45, duration: 0.72 }, 0.10)
+  .to(S, { camZ: 55, duration: 0.18 }, 0.82);
 
-/* ── RENDER LOOP ── */
-const clock=new THREE.Clock();
-(function animate(){
-  requestAnimationFrame(animate);
-  const t=clock.getElapsedTime();
-  camera.position.z=S.camZ; camera.position.y=S.camY;
-  mat.uniforms.uTime.value=t;
-  mat.uniforms.uOpacity.value=S.pOp;
-  mat.uniforms.uFocus.value=S.pFocus;
-  mat.uniforms.uAmber.value=S.pAmber;
-  mat.uniforms.uPulse.value=S.pPulse;
-  particles.rotation.y=t*0.025; particles.rotation.x=t*0.008;
-  neb1.material.uniforms.uOp.value=S.n1; neb1.material.uniforms.uTime.value=t;
-  neb2.material.uniforms.uOp.value=S.n2; neb2.material.uniforms.uTime.value=t;
-  neb3.material.uniforms.uOp.value=S.n3; neb3.material.uniforms.uTime.value=t;
-  grid.material.opacity=S.gridOp;
-  ptI.intensity=S.ptI; ptA.intensity=S.ptA;
-  renderer.render(scene,camera);
+/* ═══════════════════════════════════════
+   RENDER LOOP
+═══════════════════════════════════════ */
+const clock = new THREE.Clock();
+(function render() {
+  requestAnimationFrame(render);
+  const t = clock.getElapsedTime();
+
+  camera.position.z = S.camZ;
+  camera.position.y = S.camY;
+  camera.position.x = S.camX;
+
+  mat.uniforms.uTime.value   = t;
+  mat.uniforms.uOpacity.value = S.pOp;
+  mat.uniforms.uFocus.value  = S.pFocus;
+  mat.uniforms.uHue.value    = S.pHue;
+  mat.uniforms.uSat.value    = S.pSat;
+  mat.uniforms.uBright.value = S.pBright;
+  mat.uniforms.uSpeed.value  = S.pSpeed;
+  mat.uniforms.uPulse.value  = S.pPulse;
+  mat.uniforms.uSwirl.value  = S.pSwirl;
+
+  particles.rotation.y = t * 0.022;
+  particles.rotation.x = t * 0.007;
+
+  nebI.material.uniforms.uOp.value   = S.nI;
+  nebI.material.uniforms.uTime.value = t;
+  nebT.material.uniforms.uOp.value   = S.nT;
+  nebT.material.uniforms.uTime.value = t;
+  nebA.material.uniforms.uOp.value   = S.nA;
+  nebA.material.uniforms.uTime.value = t;
+  nebW.material.uniforms.uOp.value   = S.nW;
+  nebW.material.uniforms.uTime.value = t;
+
+  grid.material.opacity = S.gridOp;
+
+  ptI.intensity = S.liI;
+  ptT.intensity = S.liT;
+  ptA.intensity = S.liA;
+  ptW.intensity = S.liW;
+
+  renderer.setClearColor(new THREE.Color(S.bgR, S.bgG, S.bgB), 1);
+  renderer.render(scene, camera);
 })();
 
-/* ── INIT ── */
-window.addEventListener('load',()=>{
-  gsap.to(['#nav-logo','#nav-right'],{opacity:1,duration:1,delay:0.3,stagger:0.15});
+/* ═══════════════════════════════════════
+   INIT
+═══════════════════════════════════════ */
+window.addEventListener('load', () => {
+  gsap.to(['#nav-logo', '#nav-right'], { opacity: 1, duration: 1, delay: 0.3, stagger: 0.15 });
   document.getElementById('progress-dots').classList.add('show');
   document.getElementById('scroll-hint').classList.add('show');
   goToChapter(0);
 });
 
-/* ── DOT NAV ── */
-dots.forEach(dot=>{
-  dot.addEventListener('click',()=>{
-    const ch=parseInt(dot.dataset.ch);
-    const pct=(CB[ch]+CB[ch+1])/2;
-    const max=document.body.scrollHeight-window.innerHeight;
-    window.scrollTo({top:pct*max,behavior:'smooth'});
+/* dot nav */
+dots.forEach(dot => {
+  dot.addEventListener('click', () => {
+    const ch  = parseInt(dot.dataset.ch);
+    const pct = (CB[ch] + CB[ch+1]) / 2;
+    window.scrollTo({ top: pct * (document.body.scrollHeight - window.innerHeight), behavior: 'smooth' });
   });
 });
 
-/* ── RESIZE ── */
-window.addEventListener('resize',()=>{
-  camera.aspect=window.innerWidth/window.innerHeight;
+/* resize */
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth,window.innerHeight);
+  renderer.setSize(window.innerWidth, window.innerHeight);
   ScrollTrigger.refresh();
 });
 </script>
