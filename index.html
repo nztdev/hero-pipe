@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
   <title>HeroPipe — Make Your First Second Count</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
@@ -20,32 +20,48 @@
       --muted:   #6666AA;
     }
 
-    html, body { width: 100%; height: 100%; overflow-x: hidden; background: var(--black); }
+    html {
+      /* critical: let the html element scroll, not a child div */
+      overflow-x: hidden;
+      overflow-y: scroll;
+      -webkit-overflow-scrolling: touch;
+      scroll-behavior: auto; /* let GSAP handle this */
+    }
 
-    /* tall scroll container */
-    #scroll-container { height: 900vh; position: relative; }
+    body {
+      width: 100%;
+      background: var(--black);
+      /* tall scroll space */
+      height: 900vh;
+      overflow: hidden; /* body does NOT scroll — html does */
+    }
 
-    /* sticky fullscreen stage */
+    /* ── FIXED STAGE: always fullscreen, never moves ── */
     #stage {
-      position: sticky;
-      top: 0;
+      position: fixed;
+      top: 0; left: 0;
       width: 100vw;
       height: 100vh;
+      height: 100dvh; /* dynamic viewport for mobile chrome/safari */
       overflow: hidden;
+      /* CRITICAL: let touch events pass through to html scroller */
+      touch-action: pan-y;
     }
 
     #bg-canvas {
       position: absolute;
       inset: 0;
-      width: 100%;
-      height: 100%;
+      width: 100%; height: 100%;
+      /* canvas must not eat touch events */
+      touch-action: pan-y;
+      pointer-events: none;
     }
 
     #vignette {
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(ellipse 85% 85% at 50% 50%, transparent 35%, rgba(4,4,12,0.75) 100%);
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 85% 85% at 50% 50%, transparent 35%, rgba(4,4,12,0.78) 100%);
       pointer-events: none;
+      touch-action: none;
     }
 
     /* ── NAV ── */
@@ -55,78 +71,90 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 1.5rem 2.5rem;
+      padding: 1.4rem 2rem;
       z-index: 20;
       pointer-events: all;
     }
 
     .nav-logo {
       font-family: 'Syne', sans-serif;
-      font-weight: 800;
-      font-size: 1.1rem;
+      font-weight: 800; font-size: 1.05rem;
       letter-spacing: 0.04em;
-      color: var(--white);
-      text-decoration: none;
+      color: var(--white); text-decoration: none;
       opacity: 0;
     }
     .nav-logo span { color: var(--amber); }
 
     .nav-right {
-      display: flex; gap: 1.5rem; align-items: center;
+      display: flex; gap: 1.2rem; align-items: center;
       opacity: 0;
     }
 
     .nav-link {
-      color: rgba(240,238,248,0.45);
-      font-size: 0.85rem; font-weight: 500;
-      text-decoration: none; letter-spacing: 0.02em;
+      color: rgba(240,238,248,0.42);
+      font-size: 0.82rem; font-weight: 500;
+      text-decoration: none;
       transition: color 0.2s;
     }
     .nav-link:hover { color: var(--white); }
 
+    /* hide nav links on small screens */
+    @media (max-width: 560px) { .nav-link { display: none; } }
+
     .nav-btn {
       background: rgba(75,59,255,0.2);
       border: 1px solid rgba(75,59,255,0.45);
-      color: var(--white); font-size: 0.85rem; font-weight: 500;
-      padding: 0.5rem 1.25rem; border-radius: 6px;
+      color: var(--white); font-size: 0.82rem; font-weight: 500;
+      padding: 0.45rem 1.1rem; border-radius: 6px;
       text-decoration: none; transition: background 0.2s;
     }
     .nav-btn:hover { background: rgba(75,59,255,0.45); }
 
-    /* ── UI LAYER ── */
-    #ui {
-      position: absolute;
-      inset: 0;
+    /* ── CHAPTER PROGRESS BAR ── */
+    #chapter-bar {
+      position: absolute; top: 0; left: 0; right: 0;
+      height: 2px; z-index: 21;
+      background: rgba(255,255,255,0.05);
       pointer-events: none;
     }
+    #chapter-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--indigo), var(--amber));
+      width: 0%; transition: width 0.25s ease;
+    }
 
-    /* ── HEADLINE PANEL (center stage) ── */
+    /* ── UI LAYER ── */
+    #ui {
+      position: absolute; inset: 0;
+      pointer-events: none;
+      touch-action: pan-y;
+    }
+
+    /* ── HEADLINE PANEL ── */
     #headline-panel {
       position: absolute;
       top: 50%; left: 50%;
       transform: translate(-50%, -50%);
       text-align: center;
-      width: 100%;
-      padding: 0 2rem;
+      width: 100%; padding: 0 1.5rem;
       pointer-events: none;
     }
 
     .hl-eyebrow {
       font-family: 'Syne', sans-serif;
-      font-size: 0.72rem; font-weight: 700;
-      letter-spacing: 0.22em; text-transform: uppercase;
-      color: var(--amber);
-      margin-bottom: 1.1rem;
-      opacity: 0; transform: translateY(16px);
+      font-size: clamp(0.6rem, 1.5vw, 0.72rem);
+      font-weight: 700; letter-spacing: 0.2em;
+      text-transform: uppercase; color: var(--amber);
+      margin-bottom: 1rem;
+      opacity: 0; transform: translateY(14px);
     }
 
     .hl-title {
       font-family: 'Syne', sans-serif;
-      font-size: clamp(2.4rem, 5.5vw, 4.8rem);
-      font-weight: 800;
-      line-height: 1.06; letter-spacing: -0.025em;
-      color: var(--white);
-      opacity: 0; transform: translateY(24px);
+      font-size: clamp(2rem, 6vw, 4.8rem);
+      font-weight: 800; line-height: 1.06;
+      letter-spacing: -0.025em; color: var(--white);
+      opacity: 0; transform: translateY(22px);
     }
 
     .hl-title em {
@@ -138,27 +166,27 @@
     }
 
     .hl-sub {
-      margin-top: 1.1rem;
-      font-size: clamp(0.9rem, 1.6vw, 1.05rem);
+      margin-top: 1rem;
+      font-size: clamp(0.85rem, 2vw, 1.05rem);
       font-weight: 300;
       color: rgba(240,238,248,0.5);
-      max-width: 50ch; margin-left: auto; margin-right: auto;
+      max-width: 48ch; margin-left: auto; margin-right: auto;
       line-height: 1.65;
-      opacity: 0; transform: translateY(14px);
+      opacity: 0; transform: translateY(12px);
     }
 
     .hl-actions {
-      margin-top: 1.8rem;
-      display: flex; gap: 1rem;
+      margin-top: 1.6rem;
+      display: flex; gap: 0.8rem;
       justify-content: center; flex-wrap: wrap;
-      opacity: 0; transform: translateY(14px);
+      opacity: 0; transform: translateY(12px);
       pointer-events: all;
     }
 
     .btn-primary {
       background: var(--indigo); color: var(--white);
-      padding: 0.85rem 2.25rem; border-radius: 8px;
-      font-weight: 500; font-size: 0.95rem;
+      padding: 0.8rem 2rem; border-radius: 8px;
+      font-weight: 500; font-size: 0.9rem;
       text-decoration: none; border: none; cursor: pointer;
       font-family: 'Inter', sans-serif;
       transition: background 0.2s, transform 0.15s;
@@ -167,97 +195,16 @@
 
     .btn-ghost {
       background: transparent; color: rgba(240,238,248,0.6);
-      padding: 0.85rem 2.25rem; border-radius: 8px;
-      font-weight: 500; font-size: 0.95rem;
+      padding: 0.8rem 2rem; border-radius: 8px;
+      font-weight: 500; font-size: 0.9rem;
       text-decoration: none;
-      border: 1px solid rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.14);
       font-family: 'Inter', sans-serif;
       transition: border-color 0.2s, color 0.2s;
     }
     .btn-ghost:hover { border-color: rgba(255,255,255,0.35); color: var(--white); }
 
-    /* ── PIPELINE BAR (bottom) ── */
-    #pipeline-bar {
-      position: absolute;
-      bottom: 10%;
-      left: 50%; transform: translateX(-50%);
-      display: flex; align-items: center; gap: 0;
-      opacity: 0;
-      pointer-events: none;
-      z-index: 5;
-    }
-
-    .pnode {
-      display: flex; flex-direction: column;
-      align-items: center; gap: 0.4rem;
-      position: relative;
-    }
-
-    .pnode-box {
-      background: rgba(10,10,22,0.9);
-      border: 1px solid rgba(75,59,255,0.2);
-      border-radius: 8px;
-      padding: 0.6rem 1rem;
-      font-family: 'Syne', sans-serif;
-      font-size: 0.7rem; font-weight: 700;
-      letter-spacing: 0.08em; text-transform: uppercase;
-      color: var(--white);
-      white-space: nowrap;
-      backdrop-filter: blur(8px);
-      transition: border-color 0.5s, box-shadow 0.5s, opacity 0.4s, color 0.4s;
-      will-change: transform;
-    }
-
-    /* dim state when a node is extracted */
-    .pnode-box.dimmed {
-      opacity: 0.25;
-      border-color: rgba(75,59,255,0.08) !important;
-      box-shadow: none !important;
-    }
-
-    .pnode-box.lit {
-      border-color: var(--indigo);
-      box-shadow: 0 0 20px rgba(75,59,255,0.45);
-    }
-
-    .pnode-box.lit-amber {
-      border-color: var(--amber);
-      box-shadow: 0 0 20px rgba(255,149,0,0.5);
-      color: var(--amber2);
-    }
-
-    .pnode-label {
-      font-size: 0.58rem; color: var(--muted);
-      letter-spacing: 0.06em; text-transform: uppercase;
-      transition: opacity 0.4s;
-    }
-
-    .pconnector {
-      width: 44px; height: 2px;
-      background: rgba(75,59,255,0.15);
-      position: relative; overflow: hidden;
-      flex-shrink: 0;
-    }
-
-    .pconnector.flowing::after {
-      content: '';
-      position: absolute;
-      top: 0; left: -60%;
-      width: 60%; height: 100%;
-      background: linear-gradient(90deg, transparent, var(--indigo2), transparent);
-      animation: flowLine 1.1s linear infinite;
-    }
-
-    .pconnector.flowing-amber::after {
-      background: linear-gradient(90deg, transparent, var(--amber2), transparent);
-    }
-
-    @keyframes flowLine {
-      0%   { left: -60%; }
-      100% { left: 100%; }
-    }
-
-    /* ── EXTRACTED NODE CARD (flies to center) ── */
+    /* ── EXTRACTED NODE CARD ── */
     #extracted-card {
       position: absolute;
       top: 50%; left: 50%;
@@ -266,51 +213,107 @@
       pointer-events: none;
       z-index: 15;
       display: flex; flex-direction: column;
-      align-items: center; gap: 1.2rem;
+      align-items: center; gap: 1rem;
       text-align: center;
-      max-width: 500px; width: 90%;
+      max-width: 520px; width: 90%;
     }
 
     #extracted-box {
       background: rgba(10,10,22,0.95);
       border: 1.5px solid var(--indigo);
-      border-radius: 14px;
-      padding: 1rem 2rem;
+      border-radius: 12px;
+      padding: 0.8rem 1.8rem;
       font-family: 'Syne', sans-serif;
-      font-size: 1rem; font-weight: 700;
-      letter-spacing: 0.1em; text-transform: uppercase;
-      color: var(--white);
-      backdrop-filter: blur(16px);
-      box-shadow: 0 0 40px rgba(75,59,255,0.5), 0 0 80px rgba(75,59,255,0.2);
+      font-size: clamp(0.75rem, 1.5vw, 0.9rem);
+      font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--white);
+      backdrop-filter: blur(14px);
+      box-shadow: 0 0 36px rgba(75,59,255,0.5), 0 0 72px rgba(75,59,255,0.18);
       white-space: nowrap;
     }
 
     #extracted-title {
       font-family: 'Syne', sans-serif;
-      font-size: clamp(1.5rem, 3.5vw, 2.4rem);
+      font-size: clamp(1.3rem, 3.5vw, 2.2rem);
       font-weight: 800; line-height: 1.1;
-      color: var(--white);
-      letter-spacing: -0.02em;
+      color: var(--white); letter-spacing: -0.02em;
       opacity: 0; transform: translateY(14px);
     }
 
     #extracted-desc {
-      font-size: clamp(0.88rem, 1.5vw, 1rem);
+      font-size: clamp(0.83rem, 1.6vw, 0.98rem);
       font-weight: 300;
       color: rgba(240,238,248,0.55);
-      line-height: 1.65; max-width: 44ch;
+      line-height: 1.65; max-width: 42ch;
       opacity: 0; transform: translateY(10px);
     }
+
+    /* ── PIPELINE BAR ── */
+    #pipeline-bar {
+      position: absolute;
+      bottom: clamp(60px, 10%, 100px);
+      left: 50%; transform: translateX(-50%);
+      display: flex; align-items: center;
+      opacity: 0; pointer-events: none; z-index: 5;
+      /* allow horizontal overflow on small screens */
+      max-width: 98vw;
+    }
+
+    .pnode {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 0.35rem;
+    }
+
+    .pnode-box {
+      background: rgba(10,10,22,0.92);
+      border: 1px solid rgba(75,59,255,0.2);
+      border-radius: 7px;
+      padding: clamp(0.4rem,1vw,0.6rem) clamp(0.5rem,1.5vw,0.9rem);
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(0.55rem, 1.2vw, 0.68rem);
+      font-weight: 700; letter-spacing: 0.07em;
+      text-transform: uppercase; color: var(--white);
+      white-space: nowrap; backdrop-filter: blur(8px);
+      transition: border-color 0.5s, box-shadow 0.5s, opacity 0.4s, color 0.4s;
+    }
+
+    .pnode-box.dimmed { opacity: 0.2; border-color: rgba(75,59,255,0.06) !important; box-shadow: none !important; }
+    .pnode-box.lit    { border-color: var(--indigo); box-shadow: 0 0 18px rgba(75,59,255,0.45); }
+    .pnode-box.lit-amber { border-color: var(--amber); box-shadow: 0 0 18px rgba(255,149,0,0.5); color: var(--amber2); }
+
+    .pnode-label {
+      font-size: clamp(0.5rem, 1vw, 0.58rem);
+      color: var(--muted); letter-spacing: 0.05em;
+      text-transform: uppercase; transition: opacity 0.4s;
+    }
+
+    .pconnector {
+      width: clamp(18px, 3vw, 44px); height: 2px;
+      background: rgba(75,59,255,0.14);
+      position: relative; overflow: hidden; flex-shrink: 0;
+    }
+
+    .pconnector.flowing::after {
+      content: '';
+      position: absolute; top: 0; left: -60%;
+      width: 60%; height: 100%;
+      background: linear-gradient(90deg, transparent, var(--indigo2), transparent);
+      animation: flowLine 1.1s linear infinite;
+    }
+    .pconnector.flowing-amber::after {
+      background: linear-gradient(90deg, transparent, var(--amber2), transparent);
+    }
+
+    @keyframes flowLine { 0%{left:-60%} 100%{left:100%} }
 
     /* ── PROGRESS DOTS ── */
     #progress-dots {
       position: absolute;
-      right: 2rem; top: 50%;
+      right: 1.2rem; top: 50%;
       transform: translateY(-50%);
-      display: flex; flex-direction: column; gap: 0.65rem;
+      display: flex; flex-direction: column; gap: 0.6rem;
       opacity: 0; transition: opacity 0.8s;
-      pointer-events: all;
-      z-index: 20;
+      pointer-events: all; z-index: 20;
     }
     #progress-dots.show { opacity: 1; }
 
@@ -326,69 +329,39 @@
     /* ── SCROLL HINT ── */
     #scroll-hint {
       position: absolute;
-      bottom: 2.5rem; left: 50%; transform: translateX(-50%);
-      display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+      bottom: clamp(1.2rem, 4vh, 2.5rem);
+      left: 50%; transform: translateX(-50%);
+      display: flex; flex-direction: column;
+      align-items: center; gap: 0.45rem;
       opacity: 0; transition: opacity 0.6s;
       pointer-events: none; z-index: 20;
     }
-    #scroll-hint.show  { opacity: 1; }
-    #scroll-hint.hide  { opacity: 0; }
+    #scroll-hint.show { opacity: 1; }
+    #scroll-hint.hide { opacity: 0; }
 
     .scroll-hint-text {
-      font-size: 0.65rem; letter-spacing: 0.2em;
+      font-size: 0.64rem; letter-spacing: 0.18em;
       text-transform: uppercase; color: var(--muted); font-weight: 500;
     }
-
     .scroll-hint-line {
-      width: 1px; height: 36px;
+      width: 1px; height: 32px;
       background: linear-gradient(to bottom, var(--amber), transparent);
       animation: scrollPulse 1.8s ease-in-out infinite;
     }
-
     @keyframes scrollPulse {
-      0%, 100% { opacity: 0.3; transform: scaleY(0.7); }
-      50%       { opacity: 1;   transform: scaleY(1); }
-    }
-
-    /* ── CHAPTER PROGRESS BAR (top) ── */
-    #chapter-bar {
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 2px;
-      background: rgba(255,255,255,0.05);
-      z-index: 20;
-    }
-
-    #chapter-fill {
-      height: 100%;
-      background: linear-gradient(90deg, var(--indigo), var(--amber));
-      width: 0%;
-      transition: width 0.1s linear;
-    }
-
-    @media (max-width: 640px) {
-      #progress-dots { display: none; }
-      .pconnector { width: 20px; }
-      .pnode-box { font-size: 0.58rem; padding: 0.45rem 0.55rem; }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
-        animation-duration: 0.001ms !important;
-        transition-duration: 0.001ms !important;
-      }
+      0%,100%{opacity:0.3;transform:scaleY(0.7)}
+      50%{opacity:1;transform:scaleY(1)}
     }
   </style>
 </head>
 <body>
 
-<div id="scroll-container">
   <div id="stage">
-
     <canvas id="bg-canvas"></canvas>
     <div id="vignette"></div>
 
-    <!-- NAV -->
+    <div id="chapter-bar"><div id="chapter-fill"></div></div>
+
     <div id="nav">
       <a href="#" class="nav-logo" id="nav-logo">Hero<span>'s</span>Pipe</a>
       <div class="nav-right" id="nav-right">
@@ -398,96 +371,75 @@
       </div>
     </div>
 
-    <!-- CHAPTER BAR -->
-    <div id="chapter-bar"><div id="chapter-fill"></div></div>
-
-    <!-- UI -->
     <div id="ui">
 
-      <!-- HEADLINE PANEL -->
       <div id="headline-panel">
-        <p class="hl-eyebrow" id="hl-eyebrow">Scroll-driven hero sections — free, forever</p>
-        <h1 class="hl-title" id="hl-title">Your first second<br>is your <em>first impression</em></h1>
-        <p class="hl-sub" id="hl-sub">HeroPipe turns your idea into a cinematic scroll-driven hero in minutes. No design team. No budget. No compromise.</p>
-        <div class="hl-actions" id="hl-actions" style="display:none;">
+        <p class="hl-eyebrow"  id="hl-eyebrow"></p>
+        <h1 class="hl-title"   id="hl-title"></h1>
+        <p class="hl-sub"      id="hl-sub"></p>
+        <div class="hl-actions" id="hl-actions" style="display:none">
           <a href="#" class="btn-primary">Launch HeroPipe</a>
           <a href="https://github.com" class="btn-ghost" target="_blank" rel="noopener">Star on GitHub ↗</a>
         </div>
       </div>
 
-      <!-- EXTRACTED NODE CARD -->
       <div id="extracted-card">
-        <div id="extracted-box">Node</div>
-        <div id="extracted-title">Title</div>
-        <div id="extracted-desc">Description</div>
+        <div id="extracted-box"></div>
+        <div id="extracted-title"></div>
+        <div id="extracted-desc"></div>
       </div>
 
-      <!-- PIPELINE BAR -->
       <div id="pipeline-bar">
-        <div class="pnode" id="pn-0">
-          <div class="pnode-box" id="pb-0">Your Idea</div>
-          <span class="pnode-label">Input</span>
-        </div>
+        <div class="pnode" id="pn-0"><div class="pnode-box" id="pb-0">Your Idea</div><span class="pnode-label">Input</span></div>
         <div class="pconnector" id="pc-0"></div>
-
-        <div class="pnode" id="pn-1">
-          <div class="pnode-box" id="pb-1">Rule Engine</div>
-          <span class="pnode-label">Parse</span>
-        </div>
+        <div class="pnode" id="pn-1"><div class="pnode-box" id="pb-1">Rule Engine</div><span class="pnode-label">Parse</span></div>
         <div class="pconnector" id="pc-1"></div>
-
-        <div class="pnode" id="pn-2">
-          <div class="pnode-box" id="pb-2">Theme JSON</div>
-          <span class="pnode-label">Configure</span>
-        </div>
+        <div class="pnode" id="pn-2"><div class="pnode-box" id="pb-2">Theme JSON</div><span class="pnode-label">Configure</span></div>
         <div class="pconnector" id="pc-2"></div>
-
-        <div class="pnode" id="pn-3">
-          <div class="pnode-box" id="pb-3">AI Refine</div>
-          <span class="pnode-label">Optional</span>
-        </div>
+        <div class="pnode" id="pn-3"><div class="pnode-box" id="pb-3">AI Refine</div><span class="pnode-label">Optional</span></div>
         <div class="pconnector" id="pc-3"></div>
-
-        <div class="pnode" id="pn-4">
-          <div class="pnode-box" id="pb-4">Hero Scene</div>
-          <span class="pnode-label">Output</span>
-        </div>
+        <div class="pnode" id="pn-4"><div class="pnode-box" id="pb-4">Hero Scene</div><span class="pnode-label">Output</span></div>
       </div>
 
-    </div><!-- /ui -->
-
-    <!-- PROGRESS DOTS -->
-    <div id="progress-dots">
-      <div class="dot active" data-ch="0" title="Intro"></div>
-      <div class="dot" data-ch="1" title="Your Idea"></div>
-      <div class="dot" data-ch="2" title="Rule Engine"></div>
-      <div class="dot" data-ch="3" title="Theme JSON"></div>
-      <div class="dot" data-ch="4" title="AI Refine"></div>
-      <div class="dot" data-ch="5" title="Hero Scene"></div>
-      <div class="dot" data-ch="6" title="Launch"></div>
     </div>
 
-    <!-- SCROLL HINT -->
+    <div id="progress-dots">
+      <div class="dot" data-ch="0"></div>
+      <div class="dot" data-ch="1"></div>
+      <div class="dot" data-ch="2"></div>
+      <div class="dot" data-ch="3"></div>
+      <div class="dot" data-ch="4"></div>
+      <div class="dot" data-ch="5"></div>
+      <div class="dot" data-ch="6"></div>
+    </div>
+
     <div id="scroll-hint">
       <span class="scroll-hint-text">Scroll to explore</span>
       <div class="scroll-hint-line"></div>
     </div>
 
   </div><!-- /stage -->
-</div><!-- /scroll-container -->
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
-
 <script>
 gsap.registerPlugin(ScrollTrigger);
+
+/* ═══════════════════════════════════════
+   SCROLLTRIGGER: use html element as scroller
+   This is the key mobile fix — ScrollTrigger
+   must observe the same element that actually
+   scrolls. With html scrolling (not body or a div),
+   we point it at document.documentElement.
+═══════════════════════════════════════ */
+ScrollTrigger.defaults({ scroller: window });
 
 /* ═══════════════════════════════════════
    THREE.JS SCENE
 ═══════════════════════════════════════ */
 const canvas   = document.getElementById('bg-canvas');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setClearColor(0x04040C, 1);
@@ -497,7 +449,7 @@ const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerH
 camera.position.set(0, 0, 90);
 
 /* ── PARTICLES ── */
-const COUNT = 3500;
+const COUNT = window.innerWidth < 600 ? 1800 : 3200; // fewer on mobile
 const pos   = new Float32Array(COUNT * 3);
 const col   = new Float32Array(COUNT * 3);
 const sz    = new Float32Array(COUNT);
@@ -506,19 +458,17 @@ const cB    = new THREE.Color(0xFF9500);
 const cC    = new THREE.Color(0x9B8FFF);
 
 for (let i = 0; i < COUNT; i++) {
-  const r   = 55 + Math.random() * 90;
-  const th  = Math.random() * Math.PI * 2;
-  const ph  = Math.acos(2 * Math.random() - 1);
+  const r  = 55 + Math.random() * 90;
+  const th = Math.random() * Math.PI * 2;
+  const ph = Math.acos(2 * Math.random() - 1);
   pos[i*3]   = r * Math.sin(ph) * Math.cos(th);
   pos[i*3+1] = r * Math.sin(ph) * Math.sin(th);
   pos[i*3+2] = r * Math.cos(ph) - 30;
   const t = Math.random();
   const c = t < 0.65
     ? cA.clone().lerp(cC, Math.random())
-    : cA.clone().lerp(cB, (t - 0.65) * 2.8);
-  col[i*3]   = c.r;
-  col[i*3+1] = c.g;
-  col[i*3+2] = c.b;
+    : cA.clone().lerp(cB, (t-0.65)*2.8);
+  col[i*3]   = c.r; col[i*3+1] = c.g; col[i*3+2] = c.b;
   sz[i] = 0.5 + Math.random() * 1.4;
 }
 
@@ -540,497 +490,314 @@ const mat = new THREE.ShaderMaterial({
     attribute vec3 color;
     varying vec3 vColor;
     varying float vDist;
-    uniform float uTime;
-    uniform float uFocus;
-    uniform float uPulse;
-
-    void main() {
-      vColor = color;
-      vec3 p = position;
-      float drift = sin(uTime * 0.28 + p.x * 0.05) * 1.2;
-      p.y += drift * (1.0 - uFocus * 0.8);
-      p.x += cos(uTime * 0.18 + p.z * 0.04) * 0.8 * (1.0 - uFocus * 0.7);
-      p    = mix(p, p * 0.3, uFocus * 0.65);
-
-      // pulse: particles breathe outward slightly
-      p   += normalize(p) * sin(uTime * 1.2) * uPulse * 3.0;
-
-      vDist = length(p);
-      vec4 mv = modelViewMatrix * vec4(p, 1.0);
-      gl_PointSize = size * (320.0 / -mv.z);
-      gl_Position  = projectionMatrix * mv;
-    }
-  `,
+    uniform float uTime; uniform float uFocus; uniform float uPulse;
+    void main(){
+      vColor=color;
+      vec3 p=position;
+      p.y+=sin(uTime*0.28+p.x*0.05)*1.2*(1.0-uFocus*0.8);
+      p.x+=cos(uTime*0.18+p.z*0.04)*0.8*(1.0-uFocus*0.7);
+      p=mix(p,p*0.3,uFocus*0.65);
+      p+=normalize(p)*sin(uTime*1.2)*uPulse*3.0;
+      vDist=length(p);
+      vec4 mv=modelViewMatrix*vec4(p,1.0);
+      gl_PointSize=size*(320.0/-mv.z);
+      gl_Position=projectionMatrix*mv;
+    }`,
   fragmentShader: `
-    varying vec3 vColor;
-    varying float vDist;
-    uniform float uOpacity;
-    uniform float uAmber;
-
-    void main() {
-      vec2 uv = gl_PointCoord - 0.5;
-      float d = length(uv);
-      if (d > 0.5) discard;
-      float a = smoothstep(0.5, 0.05, d);
-      vec3 amber = vec3(1.0, 0.6, 0.0);
-      vec3 c = mix(vColor, amber, uAmber * 0.65);
-      gl_FragColor = vec4(c, a * uOpacity * smoothstep(160.0, 20.0, vDist));
-    }
-  `,
-  transparent: true,
-  depthWrite: false,
-  blending: THREE.AdditiveBlending,
+    varying vec3 vColor; varying float vDist;
+    uniform float uOpacity; uniform float uAmber;
+    void main(){
+      vec2 uv=gl_PointCoord-0.5;
+      if(length(uv)>0.5) discard;
+      float a=smoothstep(0.5,0.05,length(uv));
+      vec3 c=mix(vColor,vec3(1.0,0.6,0.0),uAmber*0.65);
+      gl_FragColor=vec4(c,a*uOpacity*smoothstep(160.0,20.0,vDist));
+    }`,
+  transparent:true, depthWrite:false, blending:THREE.AdditiveBlending,
 });
 
 const particles = new THREE.Points(geo, mat);
 scene.add(particles);
 
 /* ── NEBULAE ── */
-function nebula(color, x, y, z, scale, startOp) {
+function nebula(color,x,y,z,scale) {
   const m = new THREE.ShaderMaterial({
-    uniforms: { uColor: { value: new THREE.Color(color) }, uOp: { value: startOp }, uTime: { value: 0 } },
-    vertexShader:   `varying vec2 vUv; void main(){vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
-    fragmentShader: `
-      varying vec2 vUv; uniform vec3 uColor; uniform float uOp; uniform float uTime;
-      void main(){
-        vec2 c=vUv-0.5; float d=length(c);
-        float p=sin(uTime*0.45)*0.06+0.94;
-        float a=smoothstep(0.5*p,0.0,d)*uOp;
-        gl_FragColor=vec4(uColor,a);
-      }`,
-    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+    uniforms:{ uColor:{value:new THREE.Color(color)}, uOp:{value:0}, uTime:{value:0} },
+    vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+    fragmentShader:`varying vec2 vUv;uniform vec3 uColor;uniform float uOp,uTime;
+      void main(){vec2 c=vUv-0.5;float d=length(c);float p=sin(uTime*0.45)*0.06+0.94;
+      gl_FragColor=vec4(uColor,smoothstep(0.5*p,0.0,d)*uOp);}`,
+    transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, side:THREE.DoubleSide,
   });
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1,1), m);
-  mesh.position.set(x, y, z);
-  mesh.scale.set(scale, scale, 1);
-  scene.add(mesh);
-  return mesh;
+  const mesh=new THREE.Mesh(new THREE.PlaneGeometry(1,1),m);
+  mesh.position.set(x,y,z); mesh.scale.set(scale,scale,1);
+  scene.add(mesh); return mesh;
 }
-
-const neb1 = nebula(0x2215CC, -22,  12, -25, 130, 0);
-const neb2 = nebula(0xFF5500,  28,  -8, -30,  90, 0);
-const neb3 = nebula(0x3325EE,   0,   0, -15, 170, 0);
+const neb1=nebula(0x2215CC,-22,12,-25,130);
+const neb2=nebula(0xFF5500, 28,-8,-30, 90);
+const neb3=nebula(0x3325EE,  0, 0,-15,170);
 
 /* ── GRID ── */
-const grid = new THREE.GridHelper(220, 44, 0x1a1a3a, 0x0c0c1c);
-grid.position.y = -32;
-grid.material.opacity = 0;
-grid.material.transparent = true;
+const grid=new THREE.GridHelper(220,44,0x1a1a3a,0x0c0c1c);
+grid.position.y=-32; grid.material.opacity=0; grid.material.transparent=true;
 scene.add(grid);
 
 /* ── LIGHTS ── */
-scene.add(new THREE.AmbientLight(0x111122, 1));
-const ptI = new THREE.PointLight(0x4B3BFF, 0, 130);
-ptI.position.set(0, 20, 10);
-scene.add(ptI);
-const ptA = new THREE.PointLight(0xFF9500, 0, 130);
-ptA.position.set(0, -10, 18);
-scene.add(ptA);
+scene.add(new THREE.AmbientLight(0x111122,1));
+const ptI=new THREE.PointLight(0x4B3BFF,0,130); ptI.position.set(0,20,10); scene.add(ptI);
+const ptA=new THREE.PointLight(0xFF9500,0,130); ptA.position.set(0,-10,18); scene.add(ptA);
 
-/* ── SCENE STATE (all driven by GSAP) ── */
-const S = {
-  camZ: 90, camY: 0,
-  pOp: 0, pFocus: 0, pAmber: 0, pPulse: 0,
-  pRotY: 0, pRotX: 0,
-  n1: 0, n2: 0, n3: 0,
-  gridOp: 0,
-  ptI: 0, ptA: 0,
-};
+const S={camZ:90,camY:0,pOp:0,pFocus:0,pAmber:0,pPulse:0,n1:0,n2:0,n3:0,gridOp:0,ptI:0,ptA:0};
 
 /* ═══════════════════════════════════════
    NODE DATA
 ═══════════════════════════════════════ */
-const NODE_DATA = [
-  {
-    id: 0, label: 'Your Idea', tag: 'Input',
-    title: 'It starts with a single sentence',
-    desc:  'Describe what you\'re building — a community platform, a SaaS tool, a creative portfolio. One sentence is enough for HeroPipe to begin.',
-    color: 'indigo',
-  },
-  {
-    id: 1, label: 'Rule Engine', tag: 'Parse',
-    title: 'Instant mapping, zero API calls',
-    desc:  'The rule engine reads your input locally and maps it to a theme, a camera path, a particle system, and a colour palette. Runs in your browser. Always free.',
-    color: 'indigo',
-  },
-  {
-    id: 2, label: 'Theme JSON', tag: 'Configure',
-    title: 'Everything is data-driven',
-    desc:  'The entire hero scene is defined by a single JSON object — particles, camera choreography, scroll chapters, transitions. Change the JSON, change the experience.',
-    color: 'indigo',
-  },
-  {
-    id: 3, label: 'AI Refine', tag: 'Optional',
-    title: 'A creative director, not a code generator',
-    desc:  'Gemini reads the engine\'s full capability manifest before suggesting a single thing. It can only recommend what actually exists — no hallucinated effects, no broken output.',
-    color: 'amber',
-  },
-  {
-    id: 4, label: 'Hero Scene', tag: 'Output',
-    title: 'One file. Live anywhere.',
-    desc:  'Download a single self-contained HTML file. Drop it on GitHub Pages, Netlify, Vercel — anywhere. Zero dependencies. Zero lock-in. Yours forever.',
-    color: 'indigo',
-  },
+const NODES=[
+  {id:0,label:'Your Idea',   tag:'Input',     title:'It starts with a single sentence',      desc:'Describe what you\'re building — a community platform, a SaaS tool, a creative portfolio. One sentence is enough for HeroPipe to begin.',color:'indigo'},
+  {id:1,label:'Rule Engine', tag:'Parse',     title:'Instant mapping. Zero API calls.',       desc:'The rule engine reads your input locally and maps it to a theme, camera path, particle system, and colour palette. Runs in your browser. Always free.',color:'indigo'},
+  {id:2,label:'Theme JSON',  tag:'Configure', title:'Everything is data-driven',              desc:'The entire hero scene is defined by a single JSON object — particles, camera choreography, scroll chapters, transitions. Change the JSON, change the experience.',color:'indigo'},
+  {id:3,label:'AI Refine',   tag:'Optional',  title:'A creative director, not a code gen',   desc:'Gemini reads the engine\'s full capability manifest before suggesting anything. It can only recommend what actually exists — no hallucinated effects, no broken output.',color:'amber'},
+  {id:4,label:'Hero Scene',  tag:'Output',    title:'One file. Live anywhere.',               desc:'Download a single self-contained HTML file. Drop it on GitHub Pages, Netlify, or Vercel. Zero dependencies. Zero lock-in. Yours forever.',color:'indigo'},
 ];
 
-/* ═══════════════════════════════════════
-   PIPELINE DOM REFS
-═══════════════════════════════════════ */
+const HEADLINES=[
+  {eyebrow:'Scroll-driven hero sections — free, forever', title:'Your first second\nis your <em>first impression</em>', sub:'HeroPipe turns your idea into a cinematic scroll-driven hero in minutes. No design team. No budget. No compromise.',cta:false},
+  null,null,null,null,null,
+  {eyebrow:'Ready to build',title:'Your hero is <em>waiting</em>',sub:'Free on GitHub Pages. No account. No credit card. No expiry date on "free."',cta:true},
+];
+
+/* ── DOM REFS ── */
 const pipelineBar  = document.getElementById('pipeline-bar');
-const pboxes       = NODE_DATA.map(n => document.getElementById(`pb-${n.id}`));
-const pnodes       = NODE_DATA.map(n => document.getElementById(`pn-${n.id}`));
-const pconns       = [0,1,2,3].map(i => document.getElementById(`pc-${i}`));
+const pboxes       = NODES.map(n=>document.getElementById(`pb-${n.id}`));
+const pnodes       = NODES.map(n=>document.getElementById(`pn-${n.id}`));
+const pconns       = [0,1,2,3].map(i=>document.getElementById(`pc-${i}`));
 const extractCard  = document.getElementById('extracted-card');
 const extractBox   = document.getElementById('extracted-box');
 const extractTitle = document.getElementById('extracted-title');
 const extractDesc  = document.getElementById('extracted-desc');
-const hlPanel      = document.getElementById('headline-panel');
 const hlEyebrow    = document.getElementById('hl-eyebrow');
 const hlTitle      = document.getElementById('hl-title');
 const hlSub        = document.getElementById('hl-sub');
 const hlActions    = document.getElementById('hl-actions');
 const dots         = document.querySelectorAll('.dot');
-const chapterFill  = document.getElementById('chapter-fill');
+const chFill       = document.getElementById('chapter-fill');
 
-/* ═══════════════════════════════════════
-   HEADLINE CONTENT PER CHAPTER
-═══════════════════════════════════════ */
-const HEADLINES = [
-  // ch 0 — intro
-  { eyebrow: 'Scroll-driven hero sections — free, forever', title: 'Your first second\nis your <em>first impression</em>', sub: 'HeroPipe turns your idea into a cinematic scroll-driven hero in minutes. No design team. No budget. No compromise.', cta: false },
-  // ch 1-5 — node chapters (headline sits above pipeline)
-  null, null, null, null, null,
-  // ch 6 — CTA
-  { eyebrow: 'Ready to build', title: 'Your hero is <em>waiting</em>', sub: 'Free on GitHub Pages. No account. No credit card. No expiry date on "free."', cta: true },
-];
-
-/* ═══════════════════════════════════════
-   STATE MACHINE
-═══════════════════════════════════════ */
-let currentChapter = -1;
-let extractedNode  = -1;   // which node is currently extracted
-let isExtracting   = false;
-
-function setDot(idx) {
-  dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+/* ── HEADLINE HELPERS ── */
+function setHeadline(idx){
+  const h=HEADLINES[idx]; if(!h)return;
+  hlEyebrow.textContent=h.eyebrow;
+  hlTitle.innerHTML=h.title.replace(/\n/g,'<br>');
+  hlSub.textContent=h.sub;
+  hlActions.style.display=h.cta?'flex':'none';
 }
 
-/* headline text swap (instant, called just before fade-in) */
-function setHeadline(idx) {
-  const h = HEADLINES[idx];
-  if (!h) return;
-  hlEyebrow.textContent = h.eyebrow;
-  hlTitle.innerHTML     = h.title.replace(/\n/g, '<br>');
-  hlSub.textContent     = h.sub;
-  hlActions.style.display = h.cta ? 'flex' : 'none';
+function showHeadline(delay=0){
+  const els=[hlEyebrow,hlTitle,hlSub];
+  if(hlActions.style.display!=='none') els.push(hlActions);
+  gsap.fromTo(els,{y:20,opacity:0},{y:0,opacity:1,duration:0.85,stagger:0.1,ease:'power3.out',delay});
 }
 
-/* fade in headline elements */
-function showHeadline(delay = 0) {
-  const els = [hlEyebrow, hlTitle, hlSub];
-  if (hlActions.style.display !== 'none') els.push(hlActions);
-  gsap.fromTo(els,
-    { y: 22, opacity: 0 },
-    { y: 0,  opacity: 1, duration: 0.9, stagger: 0.1, ease: 'power3.out', delay }
-  );
+function hideHeadline(fast=false){
+  gsap.to([hlEyebrow,hlTitle,hlSub,hlActions],{y:-12,opacity:0,duration:fast?0.22:0.4,ease:'power2.in'});
 }
 
-function hideHeadline(fast = false) {
-  const els = [hlEyebrow, hlTitle, hlSub, hlActions];
-  gsap.to(els, { y: -14, opacity: 0, duration: fast ? 0.25 : 0.45, ease: 'power2.in' });
-}
+/* ── EXTRACTION ── */
+let currentChapter=-1, extractedNode=-1;
 
-/* ── EXTRACTION MECHANIC ── */
-function extractNode(nodeIdx, onComplete) {
-  if (extractedNode === nodeIdx) return;
-  extractedNode = nodeIdx;
-  isExtracting  = true;
-  const nd = NODE_DATA[nodeIdx];
+function extractNode(nodeIdx){
+  if(extractedNode===nodeIdx)return;
+  extractedNode=nodeIdx;
+  const nd=NODES[nodeIdx];
 
-  // 1. Dim all other pipeline nodes
-  pboxes.forEach((b, i) => {
-    b.classList.remove('dimmed', 'lit', 'lit-amber');
-    if (i !== nodeIdx) b.classList.add('dimmed');
-    else {
-      if (nd.color === 'amber') b.classList.add('lit-amber');
-      else b.classList.add('lit');
-    }
+  pboxes.forEach((b,i)=>{
+    b.classList.remove('dimmed','lit','lit-amber');
+    if(i!==nodeIdx) b.classList.add('dimmed');
+    else b.classList.add(nd.color==='amber'?'lit-amber':'lit');
   });
 
-  // 2. Populate the extracted card
-  extractBox.textContent   = nd.label;
-  extractBox.style.borderColor = nd.color === 'amber' ? 'var(--amber)' : 'var(--indigo)';
-  extractBox.style.boxShadow   = nd.color === 'amber'
-    ? '0 0 40px rgba(255,149,0,0.55), 0 0 80px rgba(255,149,0,0.2)'
-    : '0 0 40px rgba(75,59,255,0.55), 0 0 80px rgba(75,59,255,0.2)';
-  extractTitle.textContent = nd.title;
-  extractDesc.textContent  = nd.desc;
+  extractBox.textContent=nd.label;
+  const isAmber=nd.color==='amber';
+  extractBox.style.borderColor=isAmber?'var(--amber)':'var(--indigo)';
+  extractBox.style.boxShadow=isAmber
+    ?'0 0 36px rgba(255,149,0,0.55),0 0 72px rgba(255,149,0,0.18)'
+    :'0 0 36px rgba(75,59,255,0.55),0 0 72px rgba(75,59,255,0.18)';
+  extractTitle.textContent=nd.title;
+  extractDesc.textContent=nd.desc;
+  gsap.set([extractTitle,extractDesc],{y:14,opacity:0});
 
-  // Reset child states
-  gsap.set([extractTitle, extractDesc], { y: 14, opacity: 0 });
+  /* fly from pipeline node position */
+  const rect=pnodes[nodeIdx].getBoundingClientRect();
+  const startY=rect.top+rect.height/2-window.innerHeight/2;
 
-  // Get the pipeline node's screen position as origin for the fly-up
-  const pnRect = pnodes[nodeIdx].getBoundingClientRect();
-  const startY = pnRect.top + pnRect.height / 2 - window.innerHeight / 2;
-
-  // 3. Card flies from pipeline node position to centre
   gsap.fromTo(extractCard,
-    { opacity: 0, scale: 0.5, y: startY },
-    { opacity: 1, scale: 1,   y: 0, duration: 0.75, ease: 'back.out(1.4)',
-      onComplete: () => {
-        // Animate card content
-        gsap.to(extractTitle, { y: 0, opacity: 1, duration: 0.55, ease: 'power3.out' });
-        gsap.to(extractDesc,  { y: 0, opacity: 1, duration: 0.55, ease: 'power3.out', delay: 0.12 });
-        if (onComplete) onComplete();
+    {opacity:0,scale:0.5,y:startY},
+    {opacity:1,scale:1,y:0,duration:0.7,ease:'back.out(1.4)',
+      onComplete:()=>{
+        gsap.to(extractTitle,{y:0,opacity:1,duration:0.5,ease:'power3.out'});
+        gsap.to(extractDesc, {y:0,opacity:1,duration:0.5,ease:'power3.out',delay:0.1});
       }
     }
   );
 }
 
-function returnNode(onComplete) {
-  if (extractedNode === -1) return;
-  const nodeIdx = extractedNode;
+function returnNode(cb){
+  if(extractedNode===-1){if(cb)cb();return;}
+  const nodeIdx=extractedNode;
+  const rect=pnodes[nodeIdx].getBoundingClientRect();
+  const endY=rect.top+rect.height/2-window.innerHeight/2;
 
-  // Fly card back down to pipeline node position
-  const pnRect = pnodes[nodeIdx].getBoundingClientRect();
-  const endY   = pnRect.top + pnRect.height / 2 - window.innerHeight / 2;
-
-  gsap.to([extractTitle, extractDesc], { y: 8, opacity: 0, duration: 0.3, ease: 'power2.in' });
-
-  gsap.to(extractCard, {
-    opacity: 0, scale: 0.55, y: endY,
-    duration: 0.6, ease: 'back.in(1.2)',
-    delay: 0.15,
-    onComplete: () => {
-      gsap.set(extractCard, { y: 0 });
-      extractedNode = -1;
-      isExtracting  = false;
-      // Restore pipeline node appearance
-      pboxes.forEach((b, i) => {
-        b.classList.remove('dimmed');
-        if (i <= nodeIdx) b.classList.add('lit');
-      });
-      if (onComplete) onComplete();
+  gsap.to([extractTitle,extractDesc],{y:8,opacity:0,duration:0.28,ease:'power2.in'});
+  gsap.to(extractCard,{
+    opacity:0,scale:0.5,y:endY,
+    duration:0.55,ease:'back.in(1.2)',delay:0.12,
+    onComplete:()=>{
+      gsap.set(extractCard,{y:0});
+      extractedNode=-1;
+      pboxes.forEach((b,i)=>{b.classList.remove('dimmed'); if(i<=nodeIdx)b.classList.add('lit');});
+      if(cb)cb();
     }
   });
 }
 
+function showPipeline(cb){
+  gsap.to(pipelineBar,{opacity:1,duration:0.6,ease:'power2.out',onComplete:cb});
+}
+
+function hidePipeline(){
+  gsap.to(pipelineBar,{opacity:0,duration:0.5});
+  if(extractedNode!==-1){
+    gsap.to(extractCard,{opacity:0,scale:0.5,duration:0.35});
+    extractedNode=-1;
+  }
+  pboxes.forEach(b=>b.classList.remove('dimmed','lit','lit-amber'));
+  pconns.forEach(c=>c.classList.remove('flowing','flowing-amber'));
+}
+
 /* ── CHAPTER TRANSITIONS ── */
-function goToChapter(idx) {
-  if (idx === currentChapter) return;
-  const prev = currentChapter;
-  currentChapter = idx;
-  setDot(idx);
+function goToChapter(idx){
+  if(idx===currentChapter)return;
+  const prev=currentChapter;
+  currentChapter=idx;
 
-  // Update chapter progress bar
-  chapterFill.style.width = ((idx / 6) * 100) + '%';
+  dots.forEach((d,i)=>d.classList.toggle('active',i===idx));
+  chFill.style.width=((idx/6)*100)+'%';
 
-  // Scroll hint
-  const hint = document.getElementById('scroll-hint');
-  hint.classList.toggle('hide', idx > 0);
-  hint.classList.toggle('show', idx === 0);
+  const hint=document.getElementById('scroll-hint');
+  if(idx>0){hint.classList.remove('show');hint.classList.add('hide');}
+  else{hint.classList.add('show');hint.classList.remove('hide');}
 
-  /* CHAPTER 0 — INTRO */
-  if (idx === 0) {
-    hidePipeline();
-    if (prev !== -1) hideHeadline();
+  /* INTRO */
+  if(idx===0){
+    if(extractedNode!==-1||prev>0)hidePipeline();
+    if(prev>0)hideHeadline();
     setHeadline(0);
-    setTimeout(() => showHeadline(0), prev === -1 ? 600 : 400);
+    setTimeout(()=>showHeadline(0),prev<=0?600:350);
     return;
   }
 
-  /* CHAPTER 6 — CTA */
-  if (idx === 6) {
-    // Return any extracted node first
-    if (extractedNode !== -1) {
-      returnNode(() => {
-        setTimeout(() => hidePipeline(), 200);
-      });
-    } else {
-      hidePipeline();
-    }
+  /* CTA */
+  if(idx===6){
+    if(extractedNode!==-1){returnNode(()=>setTimeout(()=>hidePipeline(),150));}
+    else hidePipeline();
     hideHeadline();
     setHeadline(6);
-    setTimeout(() => showHeadline(0), 450);
+    setTimeout(()=>showHeadline(0),420);
     return;
   }
 
-  /* CHAPTERS 1–5 — NODE EXTRACTION CHAPTERS */
-  const nodeIdx = idx - 1; // maps chapter 1→node 0, etc.
-
-  if (prev === 0) {
-    // Coming from intro: show pipeline, then extract node
-    hideHeadline(true);
-    showPipeline(() => {
-      setTimeout(() => extractNode(nodeIdx), 200);
-    });
+  /* NODE CHAPTERS 1-5 */
+  const nodeIdx=idx-1;
+  if(prev===0||prev===6){
+    if(prev===0)hideHeadline(true);
+    showPipeline(()=>setTimeout(()=>extractNode(nodeIdx),150));
     return;
   }
-
-  if (prev === 6) {
-    // Coming back from CTA
-    showPipeline(() => extractNode(nodeIdx));
-    return;
-  }
-
-  // Moving between node chapters: return current, then extract next
-  if (extractedNode !== -1 && extractedNode !== nodeIdx) {
-    returnNode(() => {
-      setTimeout(() => extractNode(nodeIdx), 180);
-    });
-  } else if (extractedNode === -1) {
+  if(extractedNode!==-1&&extractedNode!==nodeIdx){
+    returnNode(()=>setTimeout(()=>extractNode(nodeIdx),160));
+  } else if(extractedNode===-1){
     extractNode(nodeIdx);
   }
 }
 
-function showPipeline(onReady) {
-  gsap.to(pipelineBar, { opacity: 1, duration: 0.6, ease: 'power2.out', onComplete: onReady });
-}
+/* ── CHAPTER BOUNDS (900vh → 7 chapters) ── */
+const CB=[0,0.12,0.25,0.38,0.52,0.66,0.80,1.0];
+function pToChapter(p){for(let i=0;i<CB.length-1;i++){if(p<CB[i+1])return i;}return 6;}
 
-function hidePipeline() {
-  gsap.to(pipelineBar, { opacity: 0, duration: 0.5 });
-  if (extractedNode !== -1) {
-    gsap.to(extractCard, { opacity: 0, scale: 0.5, duration: 0.4 });
-    extractedNode = -1;
-    isExtracting  = false;
-  }
-  // Reset all boxes
-  pboxes.forEach(b => b.classList.remove('dimmed','lit','lit-amber'));
-  pconns.forEach(c => c.classList.remove('flowing','flowing-amber'));
-}
-
-/* ═══════════════════════════════════════
-   SCROLL → CHAPTER MAPPING
-   900vh split into 7 chapters
-   Each chapter gets 1 unit of progress
-   Chapter boundaries at: 0, 0.12, 0.25, 0.38, 0.52, 0.66, 0.80
-═══════════════════════════════════════ */
-const CHAPTER_BOUNDS = [0, 0.12, 0.25, 0.38, 0.52, 0.66, 0.80, 1.0];
-
-function progressToChapter(p) {
-  for (let i = 0; i < CHAPTER_BOUNDS.length - 1; i++) {
-    if (p < CHAPTER_BOUNDS[i + 1]) return i;
-  }
-  return 6;
-}
-
-/* ═══════════════════════════════════════
-   GSAP SCROLL TIMELINE (scene only)
-═══════════════════════════════════════ */
-const tl = gsap.timeline({
-  scrollTrigger: {
-    trigger: '#scroll-container',
-    start: 'top top',
-    end: 'bottom bottom',
-    scrub: 1.4,
-    onUpdate(self) {
-      const p = self.progress;
-      const ch = progressToChapter(p);
-      goToChapter(ch);
-
-      // Animate connectors while pipeline is visible
-      if (ch >= 1 && ch <= 5) {
-        const n = ch - 1;
-        pconns.forEach((c, i) => {
-          c.classList.remove('flowing', 'flowing-amber');
-          if (i < n) {
-            c.classList.add(n === 3 && i === 2 ? 'flowing-amber' : 'flowing');
-          }
+/* ── GSAP SCROLL TIMELINE ── */
+const tl=gsap.timeline({
+  scrollTrigger:{
+    trigger:document.body,
+    start:'top top',
+    end:'bottom bottom',
+    scrub:1.4,
+    onUpdate(self){
+      const p=self.progress;
+      goToChapter(pToChapter(p));
+      const ch=pToChapter(p);
+      if(ch>=1&&ch<=5){
+        const n=ch-1;
+        pconns.forEach((c,i)=>{
+          c.classList.remove('flowing','flowing-amber');
+          if(i<n) c.classList.add(n===3&&i===2?'flowing-amber':'flowing');
         });
       }
     }
   }
 });
 
-// Scene animation matched to scroll progress
 tl
-  // 0→0.12  Intro: particles emerge
-  .to(S, { camZ: 55, pOp: 1, n3: 0.18, ptI: 1.2, duration: 0.12 }, 0)
+  .to(S,{camZ:55,pOp:1,n3:0.18,ptI:1.2,duration:0.12},0)
+  .to(S,{camZ:38,camY:4,pFocus:0.25,n1:0.15,ptI:1.8,duration:0.13},0.12)
+  .to(S,{camZ:22,camY:6,pFocus:0.45,gridOp:0.2,n1:0.28,duration:0.13},0.25)
+  .to(S,{camZ:18,camY:4,pFocus:0.6,gridOp:0.4,n3:0.28,duration:0.14},0.38)
+  .to(S,{camZ:12,camY:0,pFocus:0.75,pAmber:0.6,n2:0.3,ptA:2.5,ptI:0.4,duration:0.14},0.52)
+  .to(S,{camZ:22,camY:-4,pFocus:0.88,pAmber:1.0,n2:0.5,ptA:4.0,gridOp:0.6,pPulse:0.6,duration:0.14},0.66)
+  .to(S,{camZ:45,camY:0,pFocus:0.5,pAmber:0.7,pPulse:0,ptA:2.0,gridOp:0.3,duration:0.20},0.80);
 
-  // 0.12→0.25  Node 0 (Your Idea): mild push, nebula hints
-  .to(S, { camZ: 38, camY: 4, pFocus: 0.25, n1: 0.15, ptI: 1.8, duration: 0.13 }, 0.12)
-
-  // 0.25→0.38  Node 1 (Rule Engine): deeper push, particles tighten
-  .to(S, { camZ: 22, camY: 6, pFocus: 0.45, gridOp: 0.2, n1: 0.28, duration: 0.13 }, 0.25)
-
-  // 0.38→0.52  Node 2 (Theme JSON): hold position, nebula grows
-  .to(S, { camZ: 18, camY: 4, pFocus: 0.6, gridOp: 0.4, n3: 0.28, duration: 0.14 }, 0.38)
-
-  // 0.52→0.66  Node 3 (AI Refine): amber bloom
-  .to(S, { camZ: 12, camY: 0, pFocus: 0.75, pAmber: 0.6, n2: 0.3, ptA: 2.5, ptI: 0.4, duration: 0.14 }, 0.52)
-
-  // 0.66→0.80  Node 4 (Hero Scene): full amber, camera opens
-  .to(S, { camZ: 22, camY: -4, pFocus: 0.88, pAmber: 1.0, n2: 0.5, ptA: 4.0, gridOp: 0.6, pPulse: 0.6, duration: 0.14 }, 0.66)
-
-  // 0.80→1.0  CTA: pull wide, settle
-  .to(S, { camZ: 45, camY: 0, pFocus: 0.5, pAmber: 0.7, pPulse: 0, ptA: 2.0, gridOp: 0.3, duration: 0.20 }, 0.80);
-
-/* ═══════════════════════════════════════
-   RENDER LOOP
-═══════════════════════════════════════ */
-const clock = new THREE.Clock();
-
-(function animate() {
+/* ── RENDER LOOP ── */
+const clock=new THREE.Clock();
+(function animate(){
   requestAnimationFrame(animate);
-  const t = clock.getElapsedTime();
-
-  camera.position.z = S.camZ;
-  camera.position.y = S.camY;
-
-  mat.uniforms.uTime.value    = t;
-  mat.uniforms.uOpacity.value = S.pOp;
-  mat.uniforms.uFocus.value   = S.pFocus;
-  mat.uniforms.uAmber.value   = S.pAmber;
-  mat.uniforms.uPulse.value   = S.pPulse;
-
-  particles.rotation.y = t * 0.025 + S.pRotY;
-  particles.rotation.x = t * 0.008;
-
-  neb1.material.uniforms.uOp.value   = S.n1;
-  neb1.material.uniforms.uTime.value = t;
-  neb2.material.uniforms.uOp.value   = S.n2;
-  neb2.material.uniforms.uTime.value = t;
-  neb3.material.uniforms.uOp.value   = S.n3;
-  neb3.material.uniforms.uTime.value = t;
-
-  grid.material.opacity = S.gridOp;
-  ptI.intensity         = S.ptI;
-  ptA.intensity         = S.ptA;
-
-  renderer.render(scene, camera);
+  const t=clock.getElapsedTime();
+  camera.position.z=S.camZ; camera.position.y=S.camY;
+  mat.uniforms.uTime.value=t;
+  mat.uniforms.uOpacity.value=S.pOp;
+  mat.uniforms.uFocus.value=S.pFocus;
+  mat.uniforms.uAmber.value=S.pAmber;
+  mat.uniforms.uPulse.value=S.pPulse;
+  particles.rotation.y=t*0.025; particles.rotation.x=t*0.008;
+  neb1.material.uniforms.uOp.value=S.n1; neb1.material.uniforms.uTime.value=t;
+  neb2.material.uniforms.uOp.value=S.n2; neb2.material.uniforms.uTime.value=t;
+  neb3.material.uniforms.uOp.value=S.n3; neb3.material.uniforms.uTime.value=t;
+  grid.material.opacity=S.gridOp;
+  ptI.intensity=S.ptI; ptA.intensity=S.ptA;
+  renderer.render(scene,camera);
 })();
 
-/* ═══════════════════════════════════════
-   INIT
-═══════════════════════════════════════ */
-window.addEventListener('load', () => {
-  // Nav fade in
-  gsap.to(['#nav-logo', '#nav-right'], { opacity: 1, duration: 1, delay: 0.3 });
+/* ── INIT ── */
+window.addEventListener('load',()=>{
+  gsap.to(['#nav-logo','#nav-right'],{opacity:1,duration:1,delay:0.3,stagger:0.15});
   document.getElementById('progress-dots').classList.add('show');
-
-  // Scroll hint
-  const hint = document.getElementById('scroll-hint');
-  hint.classList.add('show');
-
-  // First chapter
+  document.getElementById('scroll-hint').classList.add('show');
   goToChapter(0);
 });
 
-// Dot navigation
-dots.forEach(dot => {
-  dot.addEventListener('click', () => {
-    const ch  = parseInt(dot.dataset.ch);
-    const pct = (CHAPTER_BOUNDS[ch] + CHAPTER_BOUNDS[ch + 1]) / 2;
-    const max = document.getElementById('scroll-container').offsetHeight - window.innerHeight;
-    window.scrollTo({ top: pct * max, behavior: 'smooth' });
+/* ── DOT NAV ── */
+dots.forEach(dot=>{
+  dot.addEventListener('click',()=>{
+    const ch=parseInt(dot.dataset.ch);
+    const pct=(CB[ch]+CB[ch+1])/2;
+    const max=document.body.scrollHeight-window.innerHeight;
+    window.scrollTo({top:pct*max,behavior:'smooth'});
   });
 });
 
-// Resize
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
+/* ── RESIZE ── */
+window.addEventListener('resize',()=>{
+  camera.aspect=window.innerWidth/window.innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setSize(window.innerWidth,window.innerHeight);
+  ScrollTrigger.refresh();
 });
 </script>
 </body>
