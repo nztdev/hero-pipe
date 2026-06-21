@@ -1,48 +1,75 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HeroPipe — Hero Sections That Mean Business</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HeroPipe — Make Your First Second Count</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Inter:wght@300;400;500&display=swap" rel="stylesheet"/>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --black:   #080810;
-      --deep:    #0D0D1A;
-      --grid:    #12121E;
+      --black:   #04040C;
       --indigo:  #4B3BFF;
-      --indigo2: #7B6FFF;
+      --indigo2: #8B7FFF;
       --amber:   #FF9500;
+      --amber2:  #FFD166;
       --white:   #F0EEF8;
-      --muted:   #8888AA;
-      --pipe-h:  3px;
+      --muted:   #6666AA;
     }
 
-    html { scroll-behavior: smooth; }
-
-    body {
-      background: var(--black);
-      color: var(--white);
-      font-family: 'Inter', sans-serif;
+    html, body {
+      width: 100%; height: 100%;
       overflow-x: hidden;
+      background: var(--black);
+    }
+
+    /* ── SCROLL CONTAINER: tall div that captures scroll, never seen ── */
+    #scroll-container {
+      height: 500vh;
+      position: relative;
+    }
+
+    /* ── STICKY STAGE: the thing the user actually sees ── */
+    #stage {
+      position: sticky;
+      top: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── THREE.JS CANVAS ── */
+    #bg-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ── UI LAYER on top of canvas ── */
+    #ui {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
     }
 
     /* ── NAV ── */
-    nav {
-      position: fixed;
+    #nav {
+      position: absolute;
       top: 0; left: 0; right: 0;
-      z-index: 100;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 1.25rem 2.5rem;
-      background: rgba(8,8,16,0.7);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(75,59,255,0.15);
+      padding: 1.5rem 2.5rem;
+      z-index: 10;
+      pointer-events: all;
     }
 
     .nav-logo {
@@ -52,508 +79,312 @@
       letter-spacing: 0.04em;
       color: var(--white);
       text-decoration: none;
+      opacity: 0;
+      transition: opacity 0.8s ease;
     }
 
+    .nav-logo.show { opacity: 1; }
     .nav-logo span { color: var(--amber); }
 
-    .nav-links {
+    .nav-right {
       display: flex;
-      gap: 2rem;
-      list-style: none;
+      gap: 1.5rem;
+      align-items: center;
+      opacity: 0;
+      transition: opacity 0.8s ease;
     }
 
-    .nav-links a {
-      color: var(--muted);
-      text-decoration: none;
-      font-size: 0.875rem;
+    .nav-right.show { opacity: 1; }
+
+    .nav-link {
+      color: rgba(240,238,248,0.5);
+      font-size: 0.85rem;
       font-weight: 500;
+      text-decoration: none;
       letter-spacing: 0.02em;
       transition: color 0.2s;
     }
 
-    .nav-links a:hover { color: var(--white); }
+    .nav-link:hover { color: var(--white); }
 
-    .nav-cta {
-      background: var(--indigo);
-      color: var(--white) !important;
+    .nav-btn {
+      background: rgba(75,59,255,0.25);
+      border: 1px solid rgba(75,59,255,0.5);
+      color: var(--white);
+      font-size: 0.85rem;
+      font-weight: 500;
       padding: 0.5rem 1.25rem;
       border-radius: 6px;
-      transition: background 0.2s !important;
+      text-decoration: none;
+      transition: background 0.2s, border-color 0.2s;
+      pointer-events: all;
     }
 
-    .nav-cta:hover { background: var(--indigo2) !important; color: var(--white) !important; }
+    .nav-btn:hover { background: rgba(75,59,255,0.5); }
 
-    /* ── HERO ── */
-    #hero {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-      padding: 8rem 2rem 4rem;
-      position: relative;
-      overflow: hidden;
-    }
-
-    /* grid background */
-    #hero::before {
-      content: '';
+    /* ── CHAPTER TEXT PANELS ── */
+    .chapter {
       position: absolute;
       inset: 0;
-      background-image:
-        linear-gradient(rgba(75,59,255,0.07) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(75,59,255,0.07) 1px, transparent 1px);
-      background-size: 48px 48px;
-      mask-image: radial-gradient(ellipse 80% 70% at 50% 50%, black 30%, transparent 100%);
-    }
-
-    /* ambient glow */
-    #hero::after {
-      content: '';
-      position: absolute;
-      width: 60vw;
-      height: 60vw;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(75,59,255,0.18) 0%, transparent 70%);
-      top: 50%; left: 50%;
-      transform: translate(-50%, -55%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 2rem;
+      opacity: 0;
       pointer-events: none;
+      transition: none; /* GSAP handles transitions */
     }
 
-    .hero-eyebrow {
+    .chapter.active { pointer-events: all; }
+
+    .chapter-eyebrow {
       font-family: 'Syne', sans-serif;
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       font-weight: 700;
-      letter-spacing: 0.2em;
+      letter-spacing: 0.22em;
       text-transform: uppercase;
       color: var(--amber);
-      margin-bottom: 1.5rem;
-      position: relative;
-      z-index: 1;
+      margin-bottom: 1.25rem;
+      transform: translateY(20px);
       opacity: 0;
-      transform: translateY(12px);
-      animation: fadeUp 0.6s ease forwards 0.2s;
     }
 
-    h1 {
+    .chapter-title {
       font-family: 'Syne', sans-serif;
-      font-size: clamp(2.8rem, 7vw, 5.5rem);
+      font-size: clamp(2.4rem, 6vw, 5rem);
       font-weight: 800;
       line-height: 1.05;
-      letter-spacing: -0.02em;
+      letter-spacing: -0.025em;
+      color: var(--white);
       max-width: 14ch;
-      position: relative;
-      z-index: 1;
+      transform: translateY(30px);
       opacity: 0;
-      transform: translateY(16px);
-      animation: fadeUp 0.7s ease forwards 0.4s;
     }
 
-    h1 em {
+    .chapter-title em {
       font-style: normal;
-      color: var(--indigo2);
-      position: relative;
+      background: linear-gradient(135deg, var(--indigo2), var(--amber2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
 
-    /* underline on "first impression" */
-    h1 em::after {
-      content: '';
-      position: absolute;
-      bottom: -4px; left: 0; right: 0;
-      height: 3px;
-      background: linear-gradient(90deg, var(--indigo), var(--amber));
-      border-radius: 2px;
-    }
-
-    .hero-sub {
-      margin-top: 1.75rem;
-      font-size: clamp(1rem, 2vw, 1.15rem);
+    .chapter-sub {
+      margin-top: 1.25rem;
+      font-size: clamp(0.95rem, 1.8vw, 1.1rem);
       font-weight: 300;
-      color: var(--muted);
-      max-width: 52ch;
+      color: rgba(240,238,248,0.55);
+      max-width: 48ch;
       line-height: 1.65;
-      position: relative;
-      z-index: 1;
+      transform: translateY(20px);
       opacity: 0;
-      transform: translateY(12px);
-      animation: fadeUp 0.7s ease forwards 0.6s;
     }
 
-    .hero-actions {
-      margin-top: 2.5rem;
+    .chapter-actions {
+      margin-top: 2rem;
       display: flex;
       gap: 1rem;
       flex-wrap: wrap;
       justify-content: center;
-      position: relative;
-      z-index: 1;
+      transform: translateY(20px);
       opacity: 0;
-      transform: translateY(12px);
-      animation: fadeUp 0.7s ease forwards 0.8s;
     }
 
     .btn-primary {
       background: var(--indigo);
       color: var(--white);
-      padding: 0.8rem 2rem;
+      padding: 0.85rem 2.25rem;
       border-radius: 8px;
-      font-family: 'Inter', sans-serif;
       font-weight: 500;
       font-size: 0.95rem;
       text-decoration: none;
       border: none;
       cursor: pointer;
       transition: background 0.2s, transform 0.15s;
-      letter-spacing: 0.01em;
+      font-family: 'Inter', sans-serif;
+      pointer-events: all;
     }
 
-    .btn-primary:hover { background: var(--indigo2); transform: translateY(-1px); }
+    .btn-primary:hover { background: var(--indigo2); transform: translateY(-2px); }
 
     .btn-ghost {
       background: transparent;
-      color: var(--muted);
-      padding: 0.8rem 2rem;
+      color: rgba(240,238,248,0.6);
+      padding: 0.85rem 2.25rem;
       border-radius: 8px;
-      font-family: 'Inter', sans-serif;
       font-weight: 500;
       font-size: 0.95rem;
       text-decoration: none;
-      border: 1px solid rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.15);
       cursor: pointer;
       transition: border-color 0.2s, color 0.2s;
-      letter-spacing: 0.01em;
+      font-family: 'Inter', sans-serif;
+      pointer-events: all;
     }
 
-    .btn-ghost:hover { border-color: rgba(255,255,255,0.3); color: var(--white); }
+    .btn-ghost:hover { border-color: rgba(255,255,255,0.35); color: var(--white); }
 
-    /* ── PIPELINE DIAGRAM ── */
-    .pipeline-wrap {
-      margin-top: 4rem;
-      width: 100%;
-      max-width: 860px;
-      position: relative;
-      z-index: 1;
-      opacity: 0;
-      transform: translateY(20px);
-      animation: fadeUp 0.8s ease forwards 1s;
-    }
-
-    .pipeline {
+    /* ── PIPELINE NODES (chapter 2 & 3) ── */
+    #pipe-nodes {
+      position: absolute;
+      bottom: 18%;
+      left: 50%;
+      transform: translateX(-50%);
       display: flex;
       align-items: center;
-      justify-content: center;
       gap: 0;
-      position: relative;
+      opacity: 0;
+      pointer-events: none;
     }
 
-    .pipe-node {
+    .pnode {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+      opacity: 0;
+      transform: translateY(16px);
+    }
+
+    .pnode-box {
+      background: rgba(13,13,26,0.85);
+      border: 1px solid rgba(75,59,255,0.25);
+      border-radius: 8px;
+      padding: 0.6rem 0.9rem;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--white);
+      white-space: nowrap;
+      backdrop-filter: blur(8px);
+      transition: border-color 0.4s, box-shadow 0.4s;
+    }
+
+    .pnode-box.lit {
+      border-color: var(--indigo);
+      box-shadow: 0 0 24px rgba(75,59,255,0.5), inset 0 0 12px rgba(75,59,255,0.08);
+    }
+
+    .pnode-box.lit-amber {
+      border-color: var(--amber);
+      box-shadow: 0 0 24px rgba(255,149,0,0.5), inset 0 0 12px rgba(255,149,0,0.08);
+    }
+
+    .pnode-label {
+      font-size: 0.6rem;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .pconnector {
+      width: 48px;
+      height: 2px;
+      background: rgba(75,59,255,0.2);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .pconnector.flowing::after {
+      content: '';
+      position: absolute;
+      top: 50%; left: -100%;
+      transform: translateY(-50%);
+      width: 40%; height: 100%;
+      background: linear-gradient(90deg, transparent, var(--indigo2), transparent);
+      animation: flowLine 1s linear infinite;
+    }
+
+    @keyframes flowLine {
+      0%   { left: -40%; }
+      100% { left: 100%; }
+    }
+
+    /* ── SCROLL PROGRESS DOTS ── */
+    #progress-dots {
+      position: absolute;
+      right: 2rem;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      opacity: 0;
+      transition: opacity 0.6s ease;
+    }
+
+    #progress-dots.show { opacity: 1; }
+
+    .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: rgba(240,238,248,0.2);
+      border: 1px solid rgba(240,238,248,0.2);
+      transition: background 0.4s, transform 0.4s, border-color 0.4s;
+      cursor: pointer;
+      pointer-events: all;
+    }
+
+    .dot.active {
+      background: var(--amber);
+      border-color: var(--amber);
+      transform: scale(1.4);
+    }
+
+    /* ── SCROLL HINT ── */
+    #scroll-hint {
+      position: absolute;
+      bottom: 2.5rem;
+      left: 50%;
+      transform: translateX(-50%);
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 0.5rem;
-      position: relative;
-      z-index: 2;
-    }
-
-    .pipe-box {
-      background: var(--grid);
-      border: 1px solid rgba(75,59,255,0.3);
-      border-radius: 10px;
-      padding: 0.75rem 1.1rem;
-      font-family: 'Syne', sans-serif;
-      font-size: 0.78rem;
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: var(--white);
-      white-space: nowrap;
-      position: relative;
-      transition: border-color 0.3s, box-shadow 0.3s;
-    }
-
-    .pipe-box.active {
-      border-color: var(--indigo);
-      box-shadow: 0 0 20px rgba(75,59,255,0.35);
-    }
-
-    .pipe-box.amber {
-      border-color: var(--amber);
-      box-shadow: 0 0 20px rgba(255,149,0,0.3);
-    }
-
-    .pipe-label {
-      font-size: 0.65rem;
-      color: var(--muted);
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-    }
-
-    /* connector lines between nodes */
-    .pipe-connector {
-      flex: 1;
-      height: var(--pipe-h);
-      background: linear-gradient(90deg, rgba(75,59,255,0.4), rgba(75,59,255,0.1));
-      position: relative;
-      overflow: visible;
-      min-width: 32px;
-      max-width: 64px;
-    }
-
-    /* animated flow dot */
-    .pipe-connector::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: var(--indigo2);
-      box-shadow: 0 0 8px var(--indigo);
-      animation: flowDot 2.4s linear infinite;
-    }
-
-    .pipe-connector:nth-child(2)::after  { animation-delay: 0s; }
-    .pipe-connector:nth-child(4)::after  { animation-delay: 0.6s; }
-    .pipe-connector:nth-child(6)::after  { animation-delay: 1.2s; }
-    .pipe-connector:nth-child(8)::after  { animation-delay: 1.8s; }
-
-    @keyframes flowDot {
-      0%   { left: 0;    opacity: 0; }
-      10%  { opacity: 1; }
-      90%  { opacity: 1; }
-      100% { left: 100%; opacity: 0; }
-    }
-
-    /* ── SCROLL SECTIONS ── */
-    .section {
-      padding: 7rem 2rem;
-      max-width: 1100px;
-      margin: 0 auto;
-    }
-
-    .section-eyebrow {
-      font-family: 'Syne', sans-serif;
-      font-size: 0.72rem;
-      font-weight: 700;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--amber);
-      margin-bottom: 1rem;
-    }
-
-    .section-title {
-      font-family: 'Syne', sans-serif;
-      font-size: clamp(1.8rem, 4vw, 2.8rem);
-      font-weight: 800;
-      line-height: 1.1;
-      letter-spacing: -0.02em;
-      margin-bottom: 1.25rem;
-    }
-
-    .section-body {
-      font-size: 1.05rem;
-      color: var(--muted);
-      line-height: 1.7;
-      max-width: 58ch;
-    }
-
-    /* ── HOW IT WORKS ── */
-    #how {
-      border-top: 1px solid rgba(255,255,255,0.06);
-    }
-
-    .steps {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 2rem;
-      margin-top: 3.5rem;
-    }
-
-    .step {
-      background: var(--deep);
-      border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 12px;
-      padding: 2rem 1.75rem;
-      position: relative;
-      overflow: hidden;
       opacity: 0;
-      transform: translateY(24px);
-      transition: opacity 0.5s ease, transform 0.5s ease, border-color 0.3s;
-    }
-
-    .step.visible { opacity: 1; transform: translateY(0); }
-    .step:hover { border-color: rgba(75,59,255,0.4); }
-
-    .step-num {
-      font-family: 'Syne', sans-serif;
-      font-size: 2.5rem;
-      font-weight: 800;
-      color: rgba(75,59,255,0.2);
-      line-height: 1;
-      margin-bottom: 1rem;
-      display: block;
-    }
-
-    .step h3 {
-      font-family: 'Syne', sans-serif;
-      font-size: 1.05rem;
-      font-weight: 700;
-      margin-bottom: 0.6rem;
-      color: var(--white);
-    }
-
-    .step p {
-      font-size: 0.9rem;
-      color: var(--muted);
-      line-height: 1.6;
-    }
-
-    /* accent bar on step hover */
-    .step::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, var(--indigo), var(--amber));
-      opacity: 0;
-      transition: opacity 0.3s;
-    }
-
-    .step:hover::before { opacity: 1; }
-
-    /* ── WHAT YOU GET ── */
-    #features {
-      border-top: 1px solid rgba(255,255,255,0.06);
-    }
-
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 1.5rem;
-      margin-top: 3.5rem;
-    }
-
-    .feature-card {
-      background: var(--deep);
-      border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 12px;
-      padding: 1.75rem;
-      opacity: 0;
-      transform: translateY(20px);
-      transition: opacity 0.5s ease, transform 0.5s ease, border-color 0.3s;
-    }
-
-    .feature-card.visible { opacity: 1; transform: translateY(0); }
-    .feature-card:hover { border-color: rgba(75,59,255,0.35); }
-
-    .feature-icon {
-      font-size: 1.5rem;
-      margin-bottom: 1rem;
-      display: block;
-    }
-
-    .feature-card h3 {
-      font-family: 'Syne', sans-serif;
-      font-size: 1rem;
-      font-weight: 700;
-      margin-bottom: 0.5rem;
-    }
-
-    .feature-card p {
-      font-size: 0.875rem;
-      color: var(--muted);
-      line-height: 1.6;
-    }
-
-    /* ── CTA SECTION ── */
-    #cta {
-      border-top: 1px solid rgba(255,255,255,0.06);
-      text-align: center;
-    }
-
-    #cta .section {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .cta-glow {
-      position: relative;
-      display: inline-block;
-    }
-
-    .cta-glow::before {
-      content: '';
-      position: absolute;
-      width: 500px; height: 300px;
-      background: radial-gradient(ellipse, rgba(75,59,255,0.2) 0%, transparent 70%);
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
+      transition: opacity 0.6s ease;
       pointer-events: none;
     }
 
-    .manifesto {
-      font-size: clamp(0.8rem, 1.5vw, 0.9rem);
-      color: var(--muted);
-      letter-spacing: 0.08em;
+    #scroll-hint.show { opacity: 1; }
+    #scroll-hint.hide { opacity: 0; }
+
+    .scroll-hint-text {
+      font-size: 0.68rem;
+      letter-spacing: 0.18em;
       text-transform: uppercase;
-      font-weight: 500;
-      margin-top: 2.5rem;
-      border-top: 1px solid rgba(255,255,255,0.08);
-      padding-top: 2.5rem;
-      max-width: 60ch;
-    }
-
-    /* ── FOOTER ── */
-    footer {
-      padding: 2rem 2.5rem;
-      border-top: 1px solid rgba(255,255,255,0.06);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 1rem;
-    }
-
-    .footer-logo {
-      font-family: 'Syne', sans-serif;
-      font-weight: 800;
-      font-size: 0.95rem;
-      color: var(--white);
-    }
-
-    .footer-logo span { color: var(--amber); }
-
-    footer p {
-      font-size: 0.8rem;
       color: var(--muted);
+      font-weight: 500;
     }
 
-    /* ── ANIMATIONS ── */
-    @keyframes fadeUp {
-      to { opacity: 1; transform: translateY(0); }
+    .scroll-hint-line {
+      width: 1px;
+      height: 36px;
+      background: linear-gradient(to bottom, var(--amber), transparent);
+      animation: scrollPulse 1.8s ease-in-out infinite;
     }
 
-    /* ── SCROLL PROGRESS BAR ── */
-    #progress {
-      position: fixed;
-      top: 0; left: 0;
-      height: 2px;
-      background: linear-gradient(90deg, var(--indigo), var(--amber));
-      z-index: 200;
-      width: 0%;
-      transition: width 0.1s linear;
+    @keyframes scrollPulse {
+      0%, 100% { opacity: 0.3; transform: scaleY(0.8); }
+      50%       { opacity: 1;   transform: scaleY(1); }
     }
 
-    /* ── RESPONSIVE ── */
+    /* ── VIGNETTE ── */
+    #vignette {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 80% 80% at 50% 50%, transparent 40%, rgba(4,4,12,0.7) 100%);
+      pointer-events: none;
+    }
+
     @media (max-width: 640px) {
-      nav { padding: 1rem 1.25rem; }
-      .nav-links { display: none; }
-      .pipeline { flex-wrap: wrap; gap: 0.75rem; }
-      .pipe-connector { display: none; }
-      .pipeline-wrap { margin-top: 2.5rem; }
-      footer { flex-direction: column; text-align: center; }
+      #progress-dots { display: none; }
+      .pconnector { width: 24px; }
+      .pnode-box { font-size: 0.6rem; padding: 0.5rem 0.6rem; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -563,218 +394,529 @@
 </head>
 <body>
 
-  <div id="progress"></div>
+<div id="scroll-container">
+  <div id="stage">
 
-  <!-- NAV -->
-  <nav>
-    <a href="#" class="nav-logo">Hero<span>'s</span>Pipe</a>
-    <ul class="nav-links">
-      <li><a href="#how">How it works</a></li>
-      <li><a href="#features">Features</a></li>
-      <li><a href="#cta" class="nav-cta">Get started</a></li>
-    </ul>
-  </nav>
+    <!-- THREE.JS CANVAS -->
+    <canvas id="bg-canvas"></canvas>
 
-  <!-- HERO -->
-  <section id="hero">
-    <p class="hero-eyebrow">Scroll-driven hero sections — free, forever</p>
+    <!-- VIGNETTE OVERLAY -->
+    <div id="vignette"></div>
 
-    <h1>Your first second<br>is your <em>first impression</em></h1>
-
-    <p class="hero-sub">
-      HeroPipe is an open pipeline that turns your idea into a cinematic,
-      scroll-driven hero section in minutes — no design team, no budget, no compromise.
-    </p>
-
-    <div class="hero-actions">
-      <a href="#how" class="btn-primary">Build your hero</a>
-      <a href="https://github.com" class="btn-ghost" target="_blank" rel="noopener">View on GitHub ↗</a>
-    </div>
-
-    <!-- THE PIPELINE DIAGRAM — the product demonstrates itself -->
-    <div class="pipeline-wrap">
-      <div class="pipeline">
-        <div class="pipe-node">
-          <div class="pipe-box active">Your Idea</div>
-          <span class="pipe-label">Input</span>
-        </div>
-        <div class="pipe-connector"></div>
-        <div class="pipe-node">
-          <div class="pipe-box active">Rule Engine</div>
-          <span class="pipe-label">Parse</span>
-        </div>
-        <div class="pipe-connector"></div>
-        <div class="pipe-node">
-          <div class="pipe-box active">Theme JSON</div>
-          <span class="pipe-label">Configure</span>
-        </div>
-        <div class="pipe-connector"></div>
-        <div class="pipe-node">
-          <div class="pipe-box amber">AI Refine</div>
-          <span class="pipe-label">Optional</span>
-        </div>
-        <div class="pipe-connector"></div>
-        <div class="pipe-node">
-          <div class="pipe-box active">Hero Scene</div>
-          <span class="pipe-label">Output</span>
-        </div>
+    <!-- NAV -->
+    <div id="nav">
+      <a href="#" class="nav-logo" id="nav-logo">Hero<span>'s</span>Pipe</a>
+      <div class="nav-right" id="nav-right">
+        <a href="#" class="nav-link">How it works</a>
+        <a href="#" class="nav-link">Features</a>
+        <a href="#" class="nav-btn">Build your hero</a>
       </div>
     </div>
-  </section>
 
-  <!-- HOW IT WORKS -->
-  <section id="how">
-    <div class="section">
-      <p class="section-eyebrow">The pipeline</p>
-      <h2 class="section-title">From idea to live hero<br>in four steps</h2>
-      <p class="section-body">
-        No design experience needed. Describe what you're building
-        and HeroPipe handles the rest — scroll chapters, camera paths,
-        particle systems, and all.
-      </p>
+    <!-- UI LAYER -->
+    <div id="ui">
 
-      <div class="steps">
-        <div class="step">
-          <span class="step-num">01</span>
-          <h3>Describe your project</h3>
-          <p>Tell HeroPipe what you're building. A sentence is enough. "A community platform for indie game developers" is all it needs.</p>
-        </div>
-        <div class="step" style="transition-delay:0.1s">
-          <span class="step-num">02</span>
-          <h3>Engine configures the scene</h3>
-          <p>The rule engine maps your input to a theme, camera path, particle system, and color palette — instantly, locally, no API required.</p>
-        </div>
-        <div class="step" style="transition-delay:0.2s">
-          <span class="step-num">03</span>
-          <h3>Optional AI refinement</h3>
-          <p>Plug in your Gemini API key and the model acts as a creative director — context-aware, capability-bound, and free on the generous free tier.</p>
-        </div>
-        <div class="step" style="transition-delay:0.3s">
-          <span class="step-num">04</span>
-          <h3>Export and deploy</h3>
-          <p>Download a single self-contained HTML file. Drop it on GitHub Pages, Netlify, Vercel — anywhere. Zero dependencies, zero lock-in.</p>
+      <!-- CHAPTER 0: Arrival -->
+      <div class="chapter" id="ch0">
+        <p class="chapter-eyebrow" id="ch0-eyebrow">Scroll-driven hero sections — free, forever</p>
+        <h1 class="chapter-title" id="ch0-title">Your first second<br>is your <em>first impression</em></h1>
+        <p class="chapter-sub" id="ch0-sub">HeroPipe turns your idea into a cinematic scroll-driven hero in minutes. No design team. No budget. No compromise.</p>
+      </div>
+
+      <!-- CHAPTER 1: The pipeline emerges -->
+      <div class="chapter" id="ch1">
+        <p class="chapter-eyebrow" id="ch1-eyebrow">The pipeline</p>
+        <h2 class="chapter-title" id="ch1-title">One idea.<br><em>Infinite heroes.</em></h2>
+        <p class="chapter-sub" id="ch1-sub">Describe your project. The engine configures theme, camera path, particles, and scroll chapters automatically.</p>
+      </div>
+
+      <!-- CHAPTER 2: AI refinement -->
+      <div class="chapter" id="ch2">
+        <p class="chapter-eyebrow" id="ch2-eyebrow">AI refinement layer</p>
+        <h2 class="chapter-title" id="ch2-title">Context-aware.<br><em>Capability-bound.</em></h2>
+        <p class="chapter-sub" id="ch2-sub">Gemini reads the engine's full capability manifest before it suggests a single thing. It can only recommend what actually exists.</p>
+      </div>
+
+      <!-- CHAPTER 3: Output -->
+      <div class="chapter" id="ch3">
+        <p class="chapter-eyebrow" id="ch3-eyebrow">The output</p>
+        <h2 class="chapter-title" id="ch3-title">One file.<br><em>Live anywhere.</em></h2>
+        <p class="chapter-sub" id="ch3-sub">Download a single self-contained HTML file. Deploy to GitHub Pages, Netlify, Vercel — anywhere. Zero dependencies. Zero lock-in.</p>
+      </div>
+
+      <!-- CHAPTER 4: CTA -->
+      <div class="chapter" id="ch4">
+        <p class="chapter-eyebrow" id="ch4-eyebrow">Ready to build</p>
+        <h2 class="chapter-title" id="ch4-title">Your hero<br>is <em>waiting</em></h2>
+        <p class="chapter-sub" id="ch4-sub">Free on GitHub Pages. No account. No credit card. No expiry date on "free."</p>
+        <div class="chapter-actions" id="ch4-actions">
+          <a href="#" class="btn-primary">Launch HeroPipe</a>
+          <a href="https://github.com" class="btn-ghost" target="_blank" rel="noopener">Star on GitHub ↗</a>
         </div>
       </div>
+
+      <!-- PIPELINE NODES (visible during chapters 1–3) -->
+      <div id="pipe-nodes">
+        <div class="pnode" id="pn0">
+          <div class="pnode-box" id="pnb0">Your Idea</div>
+          <span class="pnode-label">Input</span>
+        </div>
+        <div class="pconnector" id="pc0"></div>
+        <div class="pnode" id="pn1">
+          <div class="pnode-box" id="pnb1">Rule Engine</div>
+          <span class="pnode-label">Parse</span>
+        </div>
+        <div class="pconnector" id="pc1"></div>
+        <div class="pnode" id="pn2">
+          <div class="pnode-box" id="pnb2">Theme JSON</div>
+          <span class="pnode-label">Configure</span>
+        </div>
+        <div class="pconnector" id="pc2"></div>
+        <div class="pnode" id="pn3">
+          <div class="pnode-box" id="pnb3">AI Refine</div>
+          <span class="pnode-label">Optional</span>
+        </div>
+        <div class="pconnector" id="pc3"></div>
+        <div class="pnode" id="pn4">
+          <div class="pnode-box" id="pnb4">Hero Scene</div>
+          <span class="pnode-label">Output</span>
+        </div>
+      </div>
+
+    </div><!-- /ui -->
+
+    <!-- PROGRESS DOTS -->
+    <div id="progress-dots">
+      <div class="dot active" data-ch="0"></div>
+      <div class="dot" data-ch="1"></div>
+      <div class="dot" data-ch="2"></div>
+      <div class="dot" data-ch="3"></div>
+      <div class="dot" data-ch="4"></div>
     </div>
-  </section>
 
-  <!-- FEATURES -->
-  <section id="features">
-    <div class="section">
-      <p class="section-eyebrow">What you get</p>
-      <h2 class="section-title">Everything a modern hero<br>section should have</h2>
-      <p class="section-body">
-        Built on Three.js and GSAP. Runs entirely in the browser.
-        Performs on mobile. Looks expensive.
-      </p>
-
-      <div class="features-grid">
-        <div class="feature-card">
-          <span class="feature-icon">⬡</span>
-          <h3>Scroll-driven chapters</h3>
-          <p>Five keyframed scroll stages that guide visitors through your story without them realising they're being guided.</p>
-        </div>
-        <div class="feature-card" style="transition-delay:0.08s">
-          <span class="feature-icon">✦</span>
-          <h3>Particle systems</h3>
-          <p>Aura, network, nebula, constellation — each preset is tuned to communicate a specific feeling, not just look pretty.</p>
-        </div>
-        <div class="feature-card" style="transition-delay:0.16s">
-          <span class="feature-icon">◎</span>
-          <h3>Camera choreography</h3>
-          <p>Ascend, orbit, drift, push — cinematic camera paths that make a scroll feel like a scene.</p>
-        </div>
-        <div class="feature-card" style="transition-delay:0.24s">
-          <span class="feature-icon">◈</span>
-          <h3>Theme presets</h3>
-          <p>Anime, AI, community, nature, fintech, and more. Each is a complete visual language — palette, motion, and type — not just a colour swap.</p>
-        </div>
-        <div class="feature-card" style="transition-delay:0.32s">
-          <span class="feature-icon">⟐</span>
-          <h3>Performance tiers</h3>
-          <p>Automatically detects device capability and adjusts quality. Full WebGL on desktop, graceful fallback on mobile.</p>
-        </div>
-        <div class="feature-card" style="transition-delay:0.40s">
-          <span class="feature-icon">◇</span>
-          <h3>AI creative direction</h3>
-          <p>Gemini reads the engine's full capability manifest before responding. It can only suggest things that actually exist.</p>
-        </div>
-      </div>
+    <!-- SCROLL HINT -->
+    <div id="scroll-hint">
+      <span class="scroll-hint-text">Scroll</span>
+      <div class="scroll-hint-line"></div>
     </div>
-  </section>
 
-  <!-- CTA -->
-  <section id="cta">
-    <div class="section">
-      <div class="cta-glow">
-        <p class="section-eyebrow">Ready to build</p>
-        <h2 class="section-title">Your hero section<br>is waiting</h2>
-      </div>
-      <p class="section-body" style="text-align:center; margin:1.25rem auto 0;">
-        Free on GitHub Pages. No account. No credit card.
-        No expiry date on "free."
-      </p>
-      <div class="hero-actions" style="margin-top:2rem; opacity:1; transform:none; animation:none;">
-        <a href="#" class="btn-primary">Launch HeroPipe</a>
-        <a href="https://github.com" class="btn-ghost" target="_blank" rel="noopener">Star on GitHub ↗</a>
-      </div>
-      <p class="manifesto">
-        Your hero section is the first second of every first impression.<br>HeroPipe makes that second count.
-      </p>
-    </div>
-  </section>
+  </div><!-- /stage -->
+</div><!-- /scroll-container -->
 
-  <!-- FOOTER -->
-  <footer>
-    <div class="footer-logo">Hero<span>'s</span>Pipe</div>
-    <p>Open source · Free forever · Built in public</p>
-    <p style="color: rgba(136,136,170,0.5); font-size:0.75rem;">Built with HeroPipe ↗</p>
-  </footer>
+<!-- THREE.JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<!-- GSAP -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
 
-  <script>
-    // ── SCROLL PROGRESS BAR ──
-    const progressBar = document.getElementById('progress');
-    window.addEventListener('scroll', () => {
-      const max = document.body.scrollHeight - window.innerHeight;
-      const pct = max > 0 ? (window.scrollY / max) * 100 : 0;
-      progressBar.style.width = pct + '%';
-    }, { passive: true });
+<script>
+gsap.registerPlugin(ScrollTrigger);
 
-    // ── SCROLL-REVEAL for .step and .feature-card ──
-    const revealTargets = document.querySelectorAll('.step, .feature-card');
+/* ═══════════════════════════════════════════════
+   THREE.JS SCENE
+═══════════════════════════════════════════════ */
+const canvas = document.getElementById('bg-canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0x04040C, 1);
 
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible');
-          observer.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.15 });
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.set(0, 0, 80);
 
-    revealTargets.forEach(el => observer.observe(el));
+/* ── PARTICLE FIELD ── */
+const PARTICLE_COUNT = 3000;
+const positions = new Float32Array(PARTICLE_COUNT * 3);
+const colors    = new Float32Array(PARTICLE_COUNT * 3);
+const sizes     = new Float32Array(PARTICLE_COUNT);
 
-    // ── PIPELINE NODE PULSE ──
-    // Cycles a subtle highlight through pipeline nodes in sequence
-    const pipeBoxes = document.querySelectorAll('.pipe-box');
-    let current = 0;
+const colorA = new THREE.Color(0x4B3BFF); // indigo
+const colorB = new THREE.Color(0xFF9500); // amber
+const colorC = new THREE.Color(0x8B7FFF); // indigo light
 
-    function pulsePipeline() {
-      pipeBoxes.forEach((box, i) => {
-        box.style.transform = i === current ? 'translateY(-3px)' : '';
-        box.style.transition = 'transform 0.3s ease';
-      });
-      current = (current + 1) % pipeBoxes.length;
+for (let i = 0; i < PARTICLE_COUNT; i++) {
+  // Spread in a sphere
+  const r     = 60 + Math.random() * 80;
+  const theta = Math.random() * Math.PI * 2;
+  const phi   = Math.acos(2 * Math.random() - 1);
+  positions[i*3]   = r * Math.sin(phi) * Math.cos(theta);
+  positions[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
+  positions[i*3+2] = r * Math.cos(phi) - 40;
+
+  // Mix colors
+  const t = Math.random();
+  const c = t < 0.6 ? colorA.clone().lerp(colorC, Math.random())
+                     : colorA.clone().lerp(colorB, (t - 0.6) * 2.5);
+  colors[i*3]   = c.r;
+  colors[i*3+1] = c.g;
+  colors[i*3+2] = c.b;
+
+  sizes[i] = 0.4 + Math.random() * 1.2;
+}
+
+const particleGeo = new THREE.BufferGeometry();
+particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+particleGeo.setAttribute('color',    new THREE.BufferAttribute(colors, 3));
+particleGeo.setAttribute('size',     new THREE.BufferAttribute(sizes, 1));
+
+// Custom shader material for glowing round particles
+const particleMat = new THREE.ShaderMaterial({
+  uniforms: {
+    uTime:    { value: 0 },
+    uOpacity: { value: 0 },
+    uFocus:   { value: 0 },   // 0=spread, 1=condensed
+    uAmber:   { value: 0 },   // 0=indigo, 1=amber bloom
+  },
+  vertexShader: `
+    attribute float size;
+    attribute vec3 color;
+    varying vec3 vColor;
+    varying float vAlpha;
+    uniform float uTime;
+    uniform float uFocus;
+
+    void main() {
+      vColor = color;
+      vec3 pos = position;
+
+      // Gentle drift
+      float drift = sin(uTime * 0.3 + pos.x * 0.05) * 0.8;
+      pos.y += drift * (1.0 - uFocus);
+      pos.x += cos(uTime * 0.2 + pos.z * 0.04) * 0.5 * (1.0 - uFocus);
+
+      // Focus: particles pull toward center plane
+      pos.xyz = mix(pos.xyz, pos.xyz * 0.35, uFocus * 0.7);
+
+      vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+      gl_PointSize = size * (300.0 / -mvPosition.z);
+      gl_Position = projectionMatrix * mvPosition;
+
+      // fade by depth
+      vAlpha = smoothstep(-120.0, 20.0, pos.z);
     }
+  `,
+  fragmentShader: `
+    varying vec3 vColor;
+    varying float vAlpha;
+    uniform float uOpacity;
+    uniform float uAmber;
 
-    setInterval(pulsePipeline, 900);
+    void main() {
+      // Soft circular particle
+      vec2 uv = gl_PointCoord - 0.5;
+      float d = length(uv);
+      if (d > 0.5) discard;
+      float alpha = smoothstep(0.5, 0.1, d);
 
-    // ── PARALLAX ON HERO GRID ──
-    const hero = document.getElementById('hero');
-    window.addEventListener('scroll', () => {
-      const offset = window.scrollY;
-      hero.style.backgroundPositionY = `${offset * 0.3}px`;
-    }, { passive: true });
-  </script>
+      // Amber tint
+      vec3 amberColor = vec3(1.0, 0.58, 0.0);
+      vec3 col = mix(vColor, amberColor, uAmber * 0.6);
+
+      gl_FragColor = vec4(col, alpha * vAlpha * uOpacity);
+    }
+  `,
+  transparent: true,
+  depthWrite: false,
+  vertexColors: false,
+  blending: THREE.AdditiveBlending,
+});
+
+const particles = new THREE.Points(particleGeo, particleMat);
+scene.add(particles);
+
+/* ── NEBULA: large soft glow planes ── */
+function makeNebula(color, x, y, z, scale, opacity) {
+  const geo = new THREE.PlaneGeometry(1, 1);
+  const mat = new THREE.ShaderMaterial({
+    uniforms: {
+      uColor:   { value: new THREE.Color(color) },
+      uOpacity: { value: opacity },
+      uTime:    { value: 0 },
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }
+    `,
+    fragmentShader: `
+      varying vec2 vUv;
+      uniform vec3 uColor;
+      uniform float uOpacity;
+      uniform float uTime;
+      void main() {
+        vec2 c = vUv - 0.5;
+        float d = length(c);
+        float pulse = sin(uTime * 0.5) * 0.05 + 0.95;
+        float alpha = smoothstep(0.5 * pulse, 0.0, d) * uOpacity;
+        gl_FragColor = vec4(uColor, alpha);
+      }
+    `,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    side: THREE.DoubleSide,
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(x, y, z);
+  mesh.scale.set(scale, scale, 1);
+  scene.add(mesh);
+  return mesh;
+}
+
+const nebula1 = makeNebula(0x2A1ECC, -20, 10, -20, 120, 0.0);
+const nebula2 = makeNebula(0xFF6600,  25, -8, -30, 80,  0.0);
+const nebula3 = makeNebula(0x3B2FFF,   0,  0, -10, 160, 0.0);
+
+/* ── GRID PLANE ── */
+const gridHelper = new THREE.GridHelper(200, 40, 0x1a1a3a, 0x0d0d1e);
+gridHelper.position.y = -30;
+gridHelper.material.opacity = 0;
+gridHelper.material.transparent = true;
+scene.add(gridHelper);
+
+/* ── AMBIENT + POINT LIGHTS ── */
+scene.add(new THREE.AmbientLight(0x111122, 1));
+const pointLight = new THREE.PointLight(0x4B3BFF, 0, 120);
+pointLight.position.set(0, 20, 10);
+scene.add(pointLight);
+const amberLight = new THREE.PointLight(0xFF9500, 0, 120);
+amberLight.position.set(0, -10, 20);
+scene.add(amberLight);
+
+/* ── STATE OBJECT driven by GSAP ── */
+const state = {
+  camZ:          80,
+  camY:          0,
+  camRotX:       0,
+  particleOp:    0,
+  particleFocus: 0,
+  amberBloom:    0,
+  nebulaA:       0,
+  nebulaB:       0,
+  nebulaC:       0,
+  gridOp:        0,
+  pointLightI:   0,
+  amberLightI:   0,
+  particleRot:   0,
+};
+
+/* ═══════════════════════════════════════════════
+   CHAPTER HELPERS
+═══════════════════════════════════════════════ */
+const chapters = [
+  document.getElementById('ch0'),
+  document.getElementById('ch1'),
+  document.getElementById('ch2'),
+  document.getElementById('ch3'),
+  document.getElementById('ch4'),
+];
+
+const dots = document.querySelectorAll('.dot');
+let currentChapter = -1;
+
+function showChapter(idx) {
+  if (idx === currentChapter) return;
+  currentChapter = idx;
+
+  // Fade out all
+  chapters.forEach((ch, i) => {
+    if (i !== idx) gsap.to(ch, { opacity: 0, duration: 0.35, ease: 'power2.in' });
+  });
+
+  // Fade in target chapter and animate its children
+  const ch = chapters[idx];
+  gsap.to(ch, { opacity: 1, duration: 0.5, ease: 'power2.out' });
+
+  const eyebrow = ch.querySelector('.chapter-eyebrow');
+  const title   = ch.querySelector('.chapter-title');
+  const sub     = ch.querySelector('.chapter-sub');
+  const actions = ch.querySelector('.chapter-actions');
+
+  const els = [eyebrow, title, sub, actions].filter(Boolean);
+  gsap.fromTo(els,
+    { y: 28, opacity: 0 },
+    { y: 0,  opacity: 1, duration: 0.7, stagger: 0.1, ease: 'power3.out', delay: 0.15 }
+  );
+
+  // Update dots
+  dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+}
+
+/* ── PIPELINE NODE HELPERS ── */
+const pipeNodes = document.getElementById('pipe-nodes');
+const pnodes    = document.querySelectorAll('.pnode');
+const pboxes    = document.querySelectorAll('.pnode-box');
+const pconns    = document.querySelectorAll('.pconnector');
+
+function showPipelineNodes() {
+  gsap.to(pipeNodes, { opacity: 1, duration: 0.5 });
+  pnodes.forEach((n, i) => {
+    gsap.to(n, { opacity: 1, y: 0, duration: 0.5, delay: i * 0.1, ease: 'power2.out' });
+  });
+}
+
+function hidePipelineNodes() {
+  gsap.to(pipeNodes, { opacity: 0, duration: 0.4 });
+}
+
+function lightPipelineNodes(upToIndex, amber = false) {
+  pboxes.forEach((b, i) => {
+    b.classList.remove('lit', 'lit-amber');
+    if (i <= upToIndex) {
+      if (amber && i === upToIndex) b.classList.add('lit-amber');
+      else b.classList.add('lit');
+    }
+  });
+  pconns.forEach((c, i) => {
+    c.classList.toggle('flowing', i < upToIndex);
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   SCROLL TIMELINE
+═══════════════════════════════════════════════ */
+const totalScroll = document.getElementById('scroll-container');
+
+// Master GSAP timeline scrubbed by scroll
+const tl = gsap.timeline({
+  scrollTrigger: {
+    trigger: totalScroll,
+    start: 'top top',
+    end: 'bottom bottom',
+    scrub: 1.2,
+    onUpdate(self) {
+      const p = self.progress;
+
+      // Chapter gating
+      if      (p < 0.18) showChapter(0);
+      else if (p < 0.38) showChapter(1);
+      else if (p < 0.58) showChapter(2);
+      else if (p < 0.78) showChapter(3);
+      else                showChapter(4);
+
+      // Pipeline nodes: show in chapters 1-3
+      if (p >= 0.18 && p < 0.78) showPipelineNodes();
+      else hidePipelineNodes();
+
+      // Light up nodes progressively
+      if (p >= 0.18 && p < 0.38) lightPipelineNodes(0);
+      if (p >= 0.38 && p < 0.58) lightPipelineNodes(2, false);
+      if (p >= 0.58 && p < 0.78) lightPipelineNodes(3, true);
+      if (p >= 0.78)              lightPipelineNodes(4, false);
+
+      // Scroll hint: hide after first scroll
+      const hint = document.getElementById('scroll-hint');
+      if (p > 0.04) hint.classList.add('hide');
+      else hint.classList.remove('hide');
+    }
+  }
+});
+
+// ── CHAPTER 0 → 1: Camera push forward, particles appear ──
+tl.to(state, {
+  camZ:        30,
+  particleOp:  1,
+  nebulaC:     0.18,
+  pointLightI: 1.5,
+}, 0)
+
+// ── CHAPTER 1 → 2: Camera rises slightly, particles tighten ──
+.to(state, {
+  camZ:          10,
+  camY:          8,
+  particleFocus: 0.4,
+  nebulaA:       0.22,
+  gridOp:        0.3,
+}, 0.25)
+
+// ── CHAPTER 2 → 3: Amber bloom begins ──
+.to(state, {
+  camZ:          0,
+  camY:          0,
+  particleFocus: 0.7,
+  amberBloom:    0.55,
+  nebulaB:       0.25,
+  amberLightI:   2.5,
+  pointLightI:   0.5,
+}, 0.5)
+
+// ── CHAPTER 3 → 4: Full amber, camera pulls back wide ──
+.to(state, {
+  camZ:          20,
+  camY:         -5,
+  particleFocus: 0.9,
+  amberBloom:    1.0,
+  nebulaB:       0.45,
+  amberLightI:   4.0,
+  gridOp:        0.6,
+  particleRot:   Math.PI * 0.15,
+}, 0.75);
+
+/* ═══════════════════════════════════════════════
+   RENDER LOOP
+═══════════════════════════════════════════════ */
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const t = clock.getElapsedTime();
+
+  // Apply state to scene
+  camera.position.z    = state.camZ;
+  camera.position.y    = state.camY;
+  camera.rotation.x    = state.camRotX;
+
+  particleMat.uniforms.uTime.value    = t;
+  particleMat.uniforms.uOpacity.value = state.particleOp;
+  particleMat.uniforms.uFocus.value   = state.particleFocus;
+  particleMat.uniforms.uAmber.value   = state.amberBloom;
+
+  particles.rotation.y = t * 0.03 + state.particleRot;
+  particles.rotation.x = t * 0.01;
+
+  nebula1.material.uniforms.uOpacity.value = state.nebulaA;
+  nebula1.material.uniforms.uTime.value    = t;
+  nebula2.material.uniforms.uOpacity.value = state.nebulaB;
+  nebula2.material.uniforms.uTime.value    = t;
+  nebula3.material.uniforms.uOpacity.value = state.nebulaC;
+  nebula3.material.uniforms.uTime.value    = t;
+
+  gridHelper.material.opacity = state.gridOp;
+  pointLight.intensity  = state.pointLightI;
+  amberLight.intensity  = state.amberLightI;
+
+  renderer.render(scene, camera);
+}
+
+/* ═══════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════ */
+
+// Entrance: fade in nav + show first chapter + scroll hint
+window.addEventListener('load', () => {
+  document.getElementById('nav-logo').classList.add('show');
+  document.getElementById('nav-right').classList.add('show');
+  document.getElementById('progress-dots').classList.add('show');
+  document.getElementById('scroll-hint').classList.add('show');
+  showChapter(0);
+  animate();
+});
+
+// Dot click: jump to chapter scroll position
+dots.forEach(dot => {
+  dot.addEventListener('click', () => {
+    const ch = parseInt(dot.dataset.ch);
+    const target = (ch / 4) * (document.getElementById('scroll-container').offsetHeight - window.innerHeight);
+    window.scrollTo({ top: target, behavior: 'smooth' });
+  });
+});
+
+// Resize
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
 </body>
 </html>
