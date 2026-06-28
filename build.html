@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>Build — A Hero's Pipe</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --black:    #04040C;
+      --surface:  #0A0A18;
+      --surface2: #0F0F22;
+      --border:   rgba(75,59,255,0.18);
+      --border2:  rgba(255,255,255,0.07);
+      --indigo:   #4B3BFF;
+      --indigo2:  #8B7FFF;
+      --amber:    #FF9500;
+      --amber2:   #FFD166;
+      --teal:     #00D4C8;
+      --white:    #F0EEF8;
+      --muted:    #6666AA;
+      --muted2:   #444466;
+      --panel-w:  420px;
+    }
+
+    html, body { height: 100%; overflow: hidden; background: var(--black); color: var(--white); font-family: 'Inter', sans-serif; }
+
+    /* ── TOP NAV ── */
+    #top-nav {
+      position: fixed; top: 0; left: 0; right: 0; height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 1.5rem;
+      background: rgba(4,4,12,0.85); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border2);
+      z-index: 100;
+    }
+    .nav-logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1rem; letter-spacing: 0.04em; color: var(--white); text-decoration: none; }
+    .nav-logo span { color: var(--amber); }
+    .nav-center { font-family: 'Syne', sans-serif; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); }
+    .nav-right-links { display: flex; gap: 1rem; align-items: center; }
+    .nav-back { color: var(--muted); font-size: 0.82rem; text-decoration: none; transition: color 0.2s; }
+    .nav-back:hover { color: var(--white); }
+    @media (max-width: 600px) { .nav-center { display: none; } }
+
+    /* ── MAIN LAYOUT ── */
+    #app {
+      display: flex;
+      height: 100vh;
+      padding-top: 56px; /* nav height */
+    }
+
+    /* ── LEFT PANEL — controls ── */
+    #panel-left {
+      width: var(--panel-w);
+      flex-shrink: 0;
+      height: 100%;
+      overflow-y: auto;
+      background: var(--surface);
+      border-right: 1px solid var(--border2);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* custom scrollbar */
+    #panel-left::-webkit-scrollbar { width: 4px; }
+    #panel-left::-webkit-scrollbar-track { background: transparent; }
+    #panel-left::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .panel-section {
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border2);
+    }
+    .panel-section:last-child { border-bottom: none; }
+
+    .section-label {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.62rem; font-weight: 700;
+      letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 1rem;
+    }
+
+    /* ── DESCRIBE (optional free text) ── */
+    #describe-field {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      color: var(--white);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 300;
+      line-height: 1.5;
+      resize: none;
+      height: 80px;
+      transition: border-color 0.2s;
+      outline: none;
+    }
+    #describe-field::placeholder { color: var(--muted2); }
+    #describe-field:focus { border-color: rgba(75,59,255,0.45); }
+    .field-hint { font-size: 0.7rem; color: var(--muted); margin-top: 0.5rem; line-height: 1.4; }
+    .field-hint span { color: var(--amber); }
+
+    /* ── DROPDOWNS ── */
+    .dropdown-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+
+    .dropdown-item { display: flex; flex-direction: column; gap: 0.4rem; }
+
+    .dropdown-label {
+      font-size: 0.65rem; font-weight: 600;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .dropdown-select {
+      appearance: none;
+      -webkit-appearance: none;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 7px;
+      padding: 0.6rem 2rem 0.6rem 0.8rem;
+      color: var(--white);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 400;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.2s;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236666AA' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.7rem center;
+    }
+    .dropdown-select:hover, .dropdown-select:focus { border-color: rgba(75,59,255,0.45); }
+    .dropdown-select option { background: #0F0F22; color: var(--white); }
+
+    /* full-width dropdown */
+    .dropdown-item.full { grid-column: 1 / -1; }
+
+    /* ── HEADLINE TEXT ── */
+    .text-input {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 7px;
+      padding: 0.6rem 0.8rem;
+      color: var(--white);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.85rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .text-input::placeholder { color: var(--muted2); }
+    .text-input:focus { border-color: rgba(75,59,255,0.45); }
+    .text-input-row { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .text-input-row:last-child { margin-bottom: 0; }
+
+    /* ── GENERATE BUTTON ── */
+    #btn-generate {
+      width: 100%;
+      background: var(--indigo);
+      color: var(--white);
+      border: none;
+      border-radius: 8px;
+      padding: 0.9rem 1.5rem;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.9rem; font-weight: 700;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s;
+      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    }
+    #btn-generate:hover { background: var(--indigo2); transform: translateY(-1px); }
+    #btn-generate:active { transform: translateY(0); }
+    #btn-generate.loading { opacity: 0.7; pointer-events: none; }
+
+    .btn-icon { font-size: 1rem; }
+
+    /* ── AI REFINE SECTION ── */
+    .ai-row {
+      display: flex; align-items: center; gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+    .ai-key-input {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 7px;
+      padding: 0.55rem 0.8rem;
+      color: var(--white);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.8rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .ai-key-input::placeholder { color: var(--muted2); }
+    .ai-key-input:focus { border-color: rgba(255,149,0,0.45); }
+    #btn-refine {
+      background: rgba(255,149,0,0.15);
+      border: 1px solid rgba(255,149,0,0.35);
+      color: var(--amber);
+      border-radius: 7px;
+      padding: 0.55rem 1rem;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.78rem; font-weight: 700;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    #btn-refine:hover { background: rgba(255,149,0,0.25); border-color: rgba(255,149,0,0.6); }
+    #btn-refine:disabled { opacity: 0.4; pointer-events: none; }
+    .ai-hint { font-size: 0.68rem; color: var(--muted); line-height: 1.45; }
+    .ai-hint a { color: var(--indigo2); text-decoration: none; }
+    .ai-hint a:hover { text-decoration: underline; }
+
+    /* ── CONFIG PREVIEW (JSON) ── */
+    #config-display {
+      background: var(--black);
+      border-radius: 8px;
+      padding: 0.9rem;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 0.72rem;
+      line-height: 1.6;
+      color: var(--muted);
+      max-height: 200px;
+      overflow-y: auto;
+      white-space: pre;
+      border: 1px solid var(--border2);
+    }
+    #config-display .key   { color: var(--indigo2); }
+    #config-display .val   { color: var(--amber2); }
+    #config-display .str   { color: #7fffb0; }
+
+    /* ── EXPORT SECTION ── */
+    #btn-export {
+      width: 100%;
+      background: transparent;
+      border: 1px solid rgba(75,59,255,0.4);
+      color: var(--indigo2);
+      border-radius: 8px;
+      padding: 0.8rem 1.5rem;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.88rem; font-weight: 700;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    }
+    #btn-export:hover { background: rgba(75,59,255,0.12); border-color: rgba(75,59,255,0.7); }
+    #btn-export:disabled { opacity: 0.35; pointer-events: none; }
+
+    /* ── RIGHT PANEL — preview ── */
+    #panel-right {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      background: var(--black);
+    }
+
+    /* preview container — the hero renders here */
+    #preview-container {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+
+    /* fullscreen mode */
+    #preview-container.fullscreen {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+    }
+
+    #preview-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* preview overlay — shown before first generate */
+    #preview-empty {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      pointer-events: none;
+    }
+    .empty-icon {
+      width: 64px; height: 64px;
+      border-radius: 16px;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.8rem;
+    }
+    .empty-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem; font-weight: 700;
+      color: var(--white); letter-spacing: -0.01em;
+    }
+    .empty-sub {
+      font-size: 0.82rem; color: var(--muted);
+      text-align: center; max-width: 28ch; line-height: 1.5;
+    }
+
+    /* ── PREVIEW TOOLBAR ── */
+    #preview-toolbar {
+      position: absolute;
+      top: 1rem; right: 1rem;
+      display: flex; gap: 0.5rem;
+      z-index: 10;
+    }
+
+    .toolbar-btn {
+      background: rgba(4,4,12,0.7);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border2);
+      color: var(--muted);
+      border-radius: 7px;
+      padding: 0.45rem 0.75rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.75rem; font-weight: 500;
+      cursor: pointer;
+      transition: color 0.2s, border-color 0.2s, background 0.2s;
+      display: flex; align-items: center; gap: 0.35rem;
+    }
+    .toolbar-btn:hover { color: var(--white); border-color: rgba(255,255,255,0.2); background: rgba(4,4,12,0.9); }
+    .toolbar-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+    /* preview size indicator */
+    #preview-size {
+      position: absolute;
+      bottom: 1rem; left: 1rem;
+      font-size: 0.65rem; color: var(--muted);
+      background: rgba(4,4,12,0.6);
+      backdrop-filter: blur(8px);
+      padding: 0.3rem 0.6rem;
+      border-radius: 5px;
+      border: 1px solid var(--border2);
+      font-family: 'JetBrains Mono', monospace;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    /* ── STATUS BAR ── */
+    #status-bar {
+      position: absolute;
+      bottom: 1rem; right: 1rem;
+      display: flex; align-items: center; gap: 0.5rem;
+      font-size: 0.72rem; color: var(--muted);
+      background: rgba(4,4,12,0.7);
+      backdrop-filter: blur(8px);
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      border: 1px solid var(--border2);
+      z-index: 10;
+      transition: opacity 0.3s;
+    }
+    .status-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--muted);
+      transition: background 0.3s;
+    }
+    .status-dot.ready  { background: #4ade80; }
+    .status-dot.loading{ background: var(--amber); animation: statusPulse 1s ease-in-out infinite; }
+    .status-dot.error  { background: #f87171; }
+    @keyframes statusPulse { 0%,100%{opacity:0.5} 50%{opacity:1} }
+
+    /* ── MOBILE LAYOUT ── */
+    @media (max-width: 768px) {
+      :root { --panel-w: 100%; }
+      #app { flex-direction: column; overflow: hidden; }
+      #panel-left { width: 100%; height: 50vh; flex-shrink: 0; border-right: none; border-bottom: 1px solid var(--border2); }
+      #panel-right { height: 50vh; }
+    }
+
+    /* ── DIVIDER RESIZE HANDLE (desktop) ── */
+    #resize-handle {
+      width: 4px;
+      background: var(--border2);
+      cursor: col-resize;
+      flex-shrink: 0;
+      transition: background 0.2s;
+      position: relative;
+    }
+    #resize-handle:hover { background: rgba(75,59,255,0.4); }
+    @media (max-width: 768px) { #resize-handle { display: none; } }
+
+    /* scrollbar for config display */
+    #config-display::-webkit-scrollbar { width: 3px; }
+    #config-display::-webkit-scrollbar-thumb { background: var(--border); }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="manifest.js"></script>
+  <script src="engine.js"></script>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav id="top-nav">
+  <a href="index.html" class="nav-logo">Hero'<span>s</span> Pipe</a>
+  <span class="nav-center">Hero Builder</span>
+  <div class="nav-right-links">
+    <a href="index.html" class="nav-back">← Back</a>
+  </div>
+</nav>
+
+<!-- MAIN APP -->
+<div id="app">
+
+  <!-- LEFT PANEL -->
+  <div id="panel-left">
+
+    <!-- DESCRIBE (optional) -->
+    <div class="panel-section">
+      <div class="section-label">Describe your project</div>
+      <textarea id="describe-field" placeholder="e.g. A community platform for indie game developers..."></textarea>
+      <p class="field-hint">Optional. Used by <span>AI Refine</span> to improve the output.</p>
+    </div>
+
+    <!-- DROPDOWNS -->
+    <div class="panel-section">
+      <div class="section-label">Configure</div>
+      <div class="dropdown-grid">
+
+        <div class="dropdown-item full">
+          <span class="dropdown-label">Theme</span>
+          <select class="dropdown-select" id="sel-theme">
+            <option value="">— Select —</option>
+            <optgroup label="Digital">
+              <option value="ai-tech">AI / Tech</option>
+              <option value="saas">SaaS</option>
+              <option value="crypto">Crypto / Web3</option>
+              <option value="gaming">Gaming</option>
+              <option value="media">Media</option>
+            </optgroup>
+            <optgroup label="Human">
+              <option value="community">Community</option>
+              <option value="education">Education</option>
+              <option value="health">Health</option>
+              <option value="finance">Finance</option>
+            </optgroup>
+            <optgroup label="Creative">
+              <option value="portfolio">Portfolio</option>
+              <option value="creative">Creative Agency</option>
+              <option value="fashion">Fashion</option>
+              <option value="architecture">Architecture</option>
+            </optgroup>
+            <optgroup label="World">
+              <option value="nature">Nature</option>
+              <option value="science">Science</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <div class="dropdown-item">
+          <span class="dropdown-label">Mood</span>
+          <select class="dropdown-select" id="sel-mood">
+            <option value="">— Select —</option>
+            <option value="bold">Bold</option>
+            <option value="elegant">Elegant</option>
+            <option value="playful">Playful</option>
+            <option value="minimal">Minimal</option>
+            <option value="cinematic">Cinematic</option>
+            <option value="dark">Dark</option>
+            <option value="warm">Warm</option>
+            <option value="corporate">Corporate</option>
+            <option value="futuristic">Futuristic</option>
+            <option value="organic">Organic</option>
+          </select>
+        </div>
+
+        <div class="dropdown-item">
+          <span class="dropdown-label">Energy</span>
+          <select class="dropdown-select" id="sel-energy">
+            <option value="">— Select —</option>
+            <option value="contemplative">Contemplative</option>
+            <option value="balanced">Balanced</option>
+            <option value="electric">Electric</option>
+            <option value="frantic">Frantic</option>
+            <option value="glacial">Glacial</option>
+          </select>
+        </div>
+
+        <div class="dropdown-item">
+          <span class="dropdown-label">Colour</span>
+          <select class="dropdown-select" id="sel-colour">
+            <option value="">— Select —</option>
+            <option value="indigo-night">Indigo Night</option>
+            <option value="amber-dusk">Amber Dusk</option>
+            <option value="teal-horizon">Teal Horizon</option>
+            <option value="crimson-edge">Crimson Edge</option>
+            <option value="arctic-white">Arctic White</option>
+            <option value="aurora">Aurora</option>
+            <option value="void">Void</option>
+            <option value="solar">Solar</option>
+            <option value="forest">Forest</option>
+            <option value="ocean-deep">Ocean Deep</option>
+            <option value="rose-gold">Rose Gold</option>
+            <option value="neon-city">Neon City</option>
+            <option value="monochrome">Monochrome</option>
+            <option value="ember">Ember</option>
+            <option value="cosmic">Cosmic</option>
+          </select>
+        </div>
+
+        <div class="dropdown-item">
+          <span class="dropdown-label">Particles</span>
+          <select class="dropdown-select" id="sel-particles">
+            <option value="">— Select —</option>
+            <option value="nebula">Nebula</option>
+            <option value="network">Network</option>
+            <option value="constellation">Constellation</option>
+            <option value="aura">Aura</option>
+            <option value="grid">Grid</option>
+            <option value="dust">Dust</option>
+            <option value="vortex">Vortex</option>
+            <option value="rain">Rain</option>
+            <option value="bloom">Bloom</option>
+            <option value="shards">Shards</option>
+            <option value="waves">Waves</option>
+            <option value="fireflies">Fireflies</option>
+            <option value="matrix">Matrix</option>
+            <option value="smoke">Smoke</option>
+            <option value="crystal">Crystal</option>
+          </select>
+        </div>
+
+        <div class="dropdown-item">
+          <span class="dropdown-label">Camera</span>
+          <select class="dropdown-select" id="sel-camera">
+            <option value="">— Select —</option>
+            <option value="drift">Drift</option>
+            <option value="ascend">Ascend</option>
+            <option value="orbit">Orbit</option>
+            <option value="push">Push</option>
+            <option value="pull">Pull</option>
+            <option value="sway">Sway</option>
+            <option value="spiral">Spiral</option>
+            <option value="static">Static</option>
+            <option value="breathe">Breathe</option>
+            <option value="dive">Dive</option>
+          </select>
+        </div>
+
+        <div class="dropdown-item full">
+          <span class="dropdown-label">Typography Weight</span>
+          <select class="dropdown-select" id="sel-typo">
+            <option value="">— Select —</option>
+            <option value="light">Light</option>
+            <option value="regular">Regular</option>
+            <option value="bold" selected>Bold</option>
+            <option value="heavy">Heavy</option>
+            <option value="ultrawide">Ultrawide</option>
+          </select>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- COPY -->
+    <div class="panel-section">
+      <div class="section-label">Copy</div>
+      <div class="text-input-row">
+        <span class="dropdown-label">Headline</span>
+        <input type="text" class="text-input" id="inp-headline" placeholder="Your headline here" maxlength="60"/>
+      </div>
+      <div class="text-input-row">
+        <span class="dropdown-label">Sub-headline</span>
+        <input type="text" class="text-input" id="inp-sub" placeholder="A short supporting line" maxlength="100"/>
+      </div>
+      <div class="text-input-row">
+        <span class="dropdown-label">CTA Button</span>
+        <input type="text" class="text-input" id="inp-cta" placeholder="Get started" maxlength="30"/>
+      </div>
+    </div>
+
+    <!-- GENERATE -->
+    <div class="panel-section">
+      <button id="btn-generate">
+        <span class="btn-icon">⬡</span>
+        Generate Hero
+      </button>
+    </div>
+
+    <!-- AI REFINE -->
+    <div class="panel-section">
+      <div class="section-label">AI Refine <span style="color:var(--amber);margin-left:0.3rem;">Optional</span></div>
+      <div class="ai-row">
+        <input type="password" class="ai-key-input" id="inp-api-key" placeholder="Gemini API key"/>
+        <button id="btn-refine" disabled>Refine ✦</button>
+      </div>
+      <p class="ai-hint">Gemini reads the full capability manifest and refines your config. Get a free key at <a href="https://aistudio.google.com" target="_blank" rel="noopener">aistudio.google.com</a></p>
+    </div>
+
+    <!-- CONFIG OUTPUT -->
+    <div class="panel-section">
+      <div class="section-label">Config JSON</div>
+      <div id="config-display">// Your config will appear here after generating.</div>
+    </div>
+
+    <!-- EXPORT -->
+    <div class="panel-section">
+      <button id="btn-export" disabled>
+        <span>↓</span> Export as HTML
+      </button>
+    </div>
+
+  </div><!-- /panel-left -->
+
+  <!-- RESIZE HANDLE -->
+  <div id="resize-handle"></div>
+
+  <!-- RIGHT PANEL — preview -->
+  <div id="panel-right">
+
+    <div id="preview-container">
+
+      <!-- empty state -->
+      <div id="preview-empty">
+        <div class="empty-icon">⬡</div>
+        <div class="empty-title">No hero yet</div>
+        <div class="empty-sub">Configure your options and hit Generate to see your hero section live.</div>
+      </div>
+
+      <!-- three.js canvas — hidden until first generate -->
+      <canvas id="preview-canvas" style="display:none;"></canvas>
+
+      <!-- toolbar -->
+      <div id="preview-toolbar">
+        <button class="toolbar-btn" id="btn-device-mobile" title="Mobile preview">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="7" y="2" width="10" height="20" rx="2"/><circle cx="12" cy="18" r="1"/></svg>
+          Mobile
+        </button>
+        <button class="toolbar-btn" id="btn-device-desktop" title="Desktop preview">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 22h8M12 18v4"/></svg>
+          Desktop
+        </button>
+        <button class="toolbar-btn" id="btn-fullscreen" title="Fullscreen preview">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 00-2 2v3M21 8V5a2 2 0 00-2-2h-3M3 16v3a2 2 0 002 2h3M16 21h3a2 2 0 002-2v-3"/></svg>
+          Fullscreen
+        </button>
+      </div>
+
+      <!-- size indicator -->
+      <div id="preview-size">— × —</div>
+
+    </div><!-- /preview-container -->
+
+    <!-- status bar -->
+    <div id="status-bar">
+      <div class="status-dot" id="status-dot"></div>
+      <span id="status-text">Ready</span>
+    </div>
+
+  </div><!-- /panel-right -->
+
+</div><!-- /app -->
+
+<script>
+/* ═══════════════════════════════════════════════
+   GENERATOR PAGE SHELL
+   No engine logic yet — wiring and UI state only.
+   engine.js and manifest.js plug in here.
+═══════════════════════════════════════════════ */
+
+/* ── DOM REFS ── */
+var selTheme    = document.getElementById('sel-theme');
+var selMood     = document.getElementById('sel-mood');
+var selEnergy   = document.getElementById('sel-energy');
+var selColour   = document.getElementById('sel-colour');
+var selParticles= document.getElementById('sel-particles');
+var selCamera   = document.getElementById('sel-camera');
+var selTypo     = document.getElementById('sel-typo');
+var inpHeadline = document.getElementById('inp-headline');
+var inpSub      = document.getElementById('inp-sub');
+var inpCta      = document.getElementById('inp-cta');
+var inpApiKey   = document.getElementById('inp-api-key');
+var btnGenerate = document.getElementById('btn-generate');
+var btnRefine   = document.getElementById('btn-refine');
+var btnExport   = document.getElementById('btn-export');
+var btnFullscreen    = document.getElementById('btn-fullscreen');
+var btnDeviceMobile  = document.getElementById('btn-device-mobile');
+var btnDeviceDesktop = document.getElementById('btn-device-desktop');
+var previewContainer = document.getElementById('preview-container');
+var previewCanvas    = document.getElementById('preview-canvas');
+var previewEmpty     = document.getElementById('preview-empty');
+var previewSize      = document.getElementById('preview-size');
+var configDisplay    = document.getElementById('config-display');
+var statusDot        = document.getElementById('status-dot');
+var statusText       = document.getElementById('status-text');
+
+/* ── STATE ── */
+var state = {
+  generated: false,
+  fullscreen: false,
+  device: 'desktop',   /* 'mobile' | 'desktop' */
+  config: null,        /* last generated config object */
+  ctrl: null,         /* active render controller */
+  apiKey: '',
+};
+
+/* ── STATUS ── */
+function setStatus(type, text) {
+  statusDot.className  = 'status-dot ' + type;
+  statusText.textContent = text;
+}
+
+/* ── CONFIG DISPLAY ── */
+function renderConfigDisplay(cfg) {
+  if (!cfg) { configDisplay.textContent = '// No config generated yet.'; return; }
+  configDisplay.textContent = JSON.stringify(cfg, null, 2);
+}
+
+/* ── COLLECT FORM VALUES ── */
+function collectConfig() {
+  return {
+    theme:       selTheme.value     || 'ai-tech',
+    mood:        selMood.value      || 'bold',
+    energy:      selEnergy.value    || 'balanced',
+    colour:      selColour.value    || 'indigo-night',
+    particles:   selParticles.value || 'nebula',
+    camera:      selCamera.value    || 'drift',
+    typography:  selTypo.value      || 'bold',
+    headline:    inpHeadline.value  || 'Your Hero Section',
+    subHeadline: inpSub.value       || 'Built with Hero\'s Pipe',
+    cta:         inpCta.value       || 'Get started',
+    description: document.getElementById('describe-field').value.trim(),
+  };
+}
+
+/* ── GENERATE ── */
+btnGenerate.addEventListener('click', function() {
+  var cfg = collectConfig();
+  state.config = cfg;
+  state.generated = true;
+
+  setStatus('loading', 'Generating…');
+  btnGenerate.classList.add('loading');
+
+  /* Stop any existing render */
+  if (window.HeroPipe) window.HeroPipe.stop();
+
+  /* Show canvas, hide empty state */
+  previewEmpty.style.display = 'none';
+  previewCanvas.style.display = 'block';
+
+  /* Size canvas to container */
+  var container = previewCanvas.parentElement;
+  previewCanvas.width  = container.clientWidth;
+  previewCanvas.height = container.clientHeight;
+  previewCanvas.style.width  = '100%';
+  previewCanvas.style.height = '100%';
+
+  /* Render */
+  if (window.HeroPipe) {
+    state.ctrl = window.HeroPipe.render(cfg, previewCanvas);
+    renderConfigDisplay(cfg);
+    btnExport.disabled = false;
+    if (state.apiKey) btnRefine.disabled = false;
+    setStatus('ready', 'Generated');
+  } else {
+    setStatus('error', 'Engine not loaded');
+  }
+  btnGenerate.classList.remove('loading');
+  updatePreviewSize();
+});
+
+/* ── API KEY ── */
+inpApiKey.addEventListener('input', function() {
+  state.apiKey = inpApiKey.value.trim();
+  btnRefine.disabled = !(state.apiKey && state.generated);
+});
+
+/* ── AI REFINE ── */
+btnRefine.addEventListener('click', function() {
+  if (!state.config || !state.apiKey) return;
+  setStatus('loading', 'Refining with AI…');
+  btnRefine.disabled = true;
+  if (window.HeroPipe) {
+    window.HeroPipe.refine(
+      state.config,
+      state.apiKey,
+      document.getElementById('describe-field').value.trim(),
+      function(refined) {
+        state.config = refined;
+        /* update dropdowns to match refined values */
+        ['theme','mood','energy','colour','particles','camera','typography'].forEach(function(k) {
+          var el = document.getElementById('sel-' + (k === 'colour' ? 'colour' : k));
+          if (el && refined[k]) el.value = refined[k];
+        });
+        renderConfigDisplay(refined);
+        if (window.HeroPipe) {
+          window.HeroPipe.stop();
+          state.ctrl = window.HeroPipe.render(refined, previewCanvas);
+        }
+        setStatus('ready', 'AI Refined ✦');
+        btnRefine.disabled = false;
+      },
+      function(err) {
+        setStatus('error', 'AI error: ' + err);
+        btnRefine.disabled = false;
+      }
+    );
+  }
+});
+
+/* ── EXPORT ── */
+btnExport.addEventListener('click', function() {
+  if (!state.config) return;
+  setStatus('loading', 'Exporting…');
+  /* engine.js hook: window.HeroPipe && window.HeroPipe.export(state.config) */
+  setTimeout(function() {
+    setStatus('ready', 'Exported');
+    /* placeholder download */
+    var blob = new Blob([
+      '<!-- Hero\'s Pipe export -->\n<!-- Config: ' + JSON.stringify(state.config) + ' -->\n<!-- Engine output will appear here once engine.js is wired in -->'
+    ], {type: 'text/html'});
+    var a = document.createElement('a'); 
+    a.href = URL.createObjectURL(blob);
+    a.download = 'hero-section.html';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }, 400);
+});
+
+/* ── FULLSCREEN ── */
+btnFullscreen.addEventListener('click', function() {
+  state.fullscreen = !state.fullscreen;
+  if (state.fullscreen) {
+    previewContainer.classList.add('fullscreen');
+    btnFullscreen.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v3a2 2 0 01-2 2H3M21 8h-3a2 2 0 01-2-2V3M3 16h3a2 2 0 012 2v3M16 21v-3a2 2 0 012-2h3"/></svg> Exit';
+  } else {
+    previewContainer.classList.remove('fullscreen');
+    btnFullscreen.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 00-2 2v3M21 8V5a2 2 0 00-2-2h-3M3 16v3a2 2 0 002 2h3M16 21h3a2 2 0 002-2v-3"/></svg> Fullscreen';
+  }
+  updatePreviewSize();
+  /* re-render at new canvas size */
+  if (state.ctrl && state.config && window.HeroPipe) {
+    setTimeout(function() {
+      var c = previewCanvas.parentElement;
+      previewCanvas.width  = c.clientWidth;
+      previewCanvas.height = c.clientHeight;
+      window.HeroPipe.stop();
+      state.ctrl = window.HeroPipe.render(state.config, previewCanvas);
+    }, 50);
+  }
+});
+
+/* Keyboard escape exits fullscreen */
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && state.fullscreen) btnFullscreen.click();
+});
+
+/* ── DEVICE PREVIEW ── */
+btnDeviceMobile.addEventListener('click', function() {
+  state.device = 'mobile';
+  previewContainer.style.maxWidth  = '390px';
+  previewContainer.style.maxHeight = '844px';
+  previewContainer.style.margin    = 'auto';
+  previewContainer.style.top       = '50%';
+  previewContainer.style.transform = 'translateY(-50%)';
+  previewContainer.style.bottom    = 'auto';
+  previewContainer.style.borderRadius = '16px';
+  previewContainer.style.border    = '1px solid rgba(255,255,255,0.1)';
+  updatePreviewSize();
+});
+btnDeviceDesktop.addEventListener('click', function() {
+  state.device = 'desktop';
+  previewContainer.style.maxWidth   = '';
+  previewContainer.style.maxHeight  = '';
+  previewContainer.style.margin     = '';
+  previewContainer.style.top        = '0';
+  previewContainer.style.transform  = '';
+  previewContainer.style.bottom     = '0';
+  previewContainer.style.borderRadius = '';
+  previewContainer.style.border     = '';
+  updatePreviewSize();
+});
+
+/* ── PREVIEW SIZE INDICATOR ── */
+function updatePreviewSize() {
+  var r = previewContainer.getBoundingClientRect();
+  previewSize.textContent = Math.round(r.width) + ' × ' + Math.round(r.height);
+}
+window.addEventListener('resize', updatePreviewSize);
+updatePreviewSize();
+
+/* ── PANEL RESIZE HANDLE ── */
+var handle   = document.getElementById('resize-handle');
+var panelLeft = document.getElementById('panel-left');
+var dragging = false;
+var startX, startW;
+
+handle.addEventListener('mousedown', function(e) {
+  dragging = true; startX = e.clientX; startW = panelLeft.offsetWidth;
+  document.body.style.cursor = 'col-resize';
+  document.body.style.userSelect = 'none';
+});
+document.addEventListener('mousemove', function(e) {
+  if (!dragging) return;
+  var newW = Math.max(300, Math.min(640, startW + (e.clientX - startX)));
+  panelLeft.style.width = newW + 'px';
+  updatePreviewSize();
+});
+document.addEventListener('mouseup', function() {
+  if (!dragging) return;
+  dragging = false;
+  document.body.style.cursor = '';
+  document.body.style.userSelect = '';
+});
+
+/* ── LIVE CONFIG PREVIEW as dropdowns change ── */
+var allSelects = [selTheme, selMood, selEnergy, selColour, selParticles, selCamera, selTypo];
+allSelects.forEach(function(sel) {
+  sel.addEventListener('change', function() {
+    if (state.generated) renderConfigDisplay(collectConfig());
+  });
+});
+
+/* ── INIT ── */
+setStatus('', 'Ready');
+</script>
+</body>
+</html>
