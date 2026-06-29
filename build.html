@@ -824,19 +824,12 @@ btnRefine.addEventListener('click', function() {
 btnExport.addEventListener('click', function() {
   if (!state.config) return;
   setStatus('loading', 'Exporting…');
-  /* engine.js hook: window.HeroPipe && window.HeroPipe.export(state.config) */
-  setTimeout(function() {
-    setStatus('ready', 'Exported');
-    /* placeholder download */
-    var blob = new Blob([
-      '<!-- Hero\'s Pipe export -->\n<!-- Config: ' + JSON.stringify(state.config) + ' -->\n<!-- Engine output will appear here once engine.js is wired in -->'
-    ], {type: 'text/html'});
-    var a = document.createElement('a'); 
-    a.href = URL.createObjectURL(blob);
-    a.download = 'hero-section.html';
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }, 400);
+  if (window.HeroPipe && state.config) {
+    window.HeroPipe.export(state.config);
+    setStatus('ready', 'Exported ↓');
+  } else {
+    setStatus('error', 'Generate a hero first');
+  }
 });
 
 /* ── FULLSCREEN ── */
