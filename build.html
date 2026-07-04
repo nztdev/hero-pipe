@@ -401,6 +401,23 @@
     #config-display::-webkit-scrollbar { width: 3px; }
     #config-display::-webkit-scrollbar-thumb { background: var(--border); }
 
+    /* ── TOGGLE SWITCHES ── */
+    .toggle-wrap { position:relative; display:inline-block; width:36px; height:20px; flex-shrink:0; }
+    .fx-toggle { opacity:0; width:0; height:0; position:absolute; }
+    .toggle-track {
+      position:absolute; inset:0; border-radius:10px;
+      background:var(--muted2); cursor:pointer;
+      transition:background 0.25s;
+    }
+    .toggle-track::after {
+      content:''; position:absolute;
+      top:3px; left:3px;
+      width:14px; height:14px; border-radius:50%;
+      background:var(--white); transition:transform 0.25s;
+    }
+    .fx-toggle:checked + .toggle-track { background:var(--indigo); }
+    .fx-toggle:checked + .toggle-track::after { transform:translateX(16px); }
+
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
     }
@@ -408,6 +425,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="manifest.js"></script>
   <script src="engine.js"></script>
+  <script src="cursor.js"></script>
 </head>
 <body>
 
@@ -612,6 +630,47 @@
     <div class="panel-section">
       <div class="section-label">Config JSON</div>
       <div id="config-display">// Your config will appear here after generating.</div>
+    </div>
+
+    <!-- CURSOR FX -->
+    <div class="panel-section">
+      <div class="section-label">Cursor FX</div>
+      <div style="display:flex;flex-direction:column;gap:0.6rem;">
+
+        <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+          <span style="font-size:0.82rem;color:var(--white);">Spotlight</span>
+          <div class="toggle-wrap">
+            <input type="checkbox" id="fx-spotlight" checked class="fx-toggle"/>
+            <span class="toggle-track"></span>
+          </div>
+        </label>
+
+        <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+          <span style="font-size:0.82rem;color:var(--white);">Particle Trail</span>
+          <div class="toggle-wrap">
+            <input type="checkbox" id="fx-trail" checked class="fx-toggle"/>
+            <span class="toggle-track"></span>
+          </div>
+        </label>
+
+        <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+          <span style="font-size:0.82rem;color:var(--white);">Magnetic Elements</span>
+          <div class="toggle-wrap">
+            <input type="checkbox" id="fx-magnetic" class="fx-toggle"/>
+            <span class="toggle-track"></span>
+          </div>
+        </label>
+
+        <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+          <span style="font-size:0.82rem;color:var(--white);">Custom Cursor</span>
+          <div class="toggle-wrap">
+            <input type="checkbox" id="fx-cursor" class="fx-toggle"/>
+            <span class="toggle-track"></span>
+          </div>
+        </label>
+
+      </div>
+      <p class="field-hint" style="margin-top:0.75rem;">Hover the preview to see effects. Add <span>data-magnetic</span> to any element to enable gravity pull.</p>
     </div>
 
     <!-- EXPORT -->
@@ -923,6 +982,22 @@ var allSelects = [selTheme, selMood, selEnergy, selColour, selParticles, selCame
 allSelects.forEach(function(sel) {
   sel.addEventListener('change', function() {
     if (state.generated) renderConfigDisplay(collectConfig());
+  });
+});
+
+/* ── CURSOR FX TOGGLES ── */
+var fxToggles = Array.from(document.querySelectorAll('.fx-toggle'));
+fxToggles.forEach(function(toggle) {
+  toggle.addEventListener('change', function() {
+    if (!window.HeroPipeCursor) return;
+    var effectMap = {
+      'fx-spotlight': 'spotlight',
+      'fx-trail':     'trail',
+      'fx-magnetic':  'magnetic',
+      'fx-cursor':    'customCursor',
+    };
+    var effect = effectMap[toggle.id];
+    if (effect) window.HeroPipeCursor.setEffect(effect, toggle.checked);
   });
 });
 
