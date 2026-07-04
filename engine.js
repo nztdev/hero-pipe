@@ -38,6 +38,12 @@
       subHeadline:'Built with Hero\'s Pipe',
       cta:        'Get started',
       transition: 'dissolve',
+      cursorFX:       true,
+      cursorSpotlight:true,
+      cursorTrail:    true,
+      cursorMagnetic: true,
+      cursorCustom:   false,
+      cursorColor:    null, /* null = use accent colour */
     }, config);
 
     /* pull param blocks from manifest */
@@ -99,6 +105,14 @@
       /* scroll */
       scrollScrub: energyP.scrollScrub,
 
+      /* cursor fx */
+      cursorFX:        cfg.cursorFX !== false,
+      cursorSpotlight: cfg.cursorSpotlight !== false,
+      cursorTrail:     cfg.cursorTrail !== false,
+      cursorMagnetic:  cfg.cursorMagnetic !== false,
+      cursorCustom:    cfg.cursorCustom || false,
+      cursorColor:     cfg.cursorColor  || null,
+
       /* transition */
       transitionDuration: tranP.duration,
       transitionEase:     tranP.ease,
@@ -118,6 +132,7 @@
   function stopCurrent() {
     if (_activeRAF) { cancelAnimationFrame(_activeRAF); _activeRAF = null; }
     if (_activeRenderer) { try { _activeRenderer.dispose(); } catch(e) {} _activeRenderer = null; }
+    if (window.HeroPipeCursor) { try { window.HeroPipeCursor.destroy(); } catch(e) {} }
   }
 
   function render(config, canvas) {
@@ -376,6 +391,22 @@
 
     loop();
 
+    /* ── cursor FX ── */
+    if (P.cursorFX && window.HeroPipeCursor) {
+      var cColor = P.cursorColor || P.accentHex2 || '#8B7FFF';
+      window.HeroPipeCursor.init({
+        spotlight:       P.cursorSpotlight,
+        spotlightColor:  'rgba(' + _hexToRgb(cColor) + ',0.18)',
+        spotlightRadius: 300,
+        trail:           P.cursorTrail,
+        trailColor:      cColor,
+        trailDensity:    3,
+        magnetic:        P.cursorMagnetic,
+        customCursor:    P.cursorCustom,
+        cursorColor:     cColor,
+      }, canvas);
+    }
+
     /* public controller */
     var ctrl = {
       stop: function() {
@@ -466,6 +497,9 @@
     var P  = resolve(config);
     var ac = P.accentHex;
     var ac2= P.accentHex2;
+    /* determine CTA text colour: dark for light accents, white for dark */
+    var lightAccents = ['arctic-white','monochrome','aurora','rose-gold'];
+    var ctaText = lightAccents.indexOf(config.colour || '') !== -1 ? '#111122' : '#ffffff';
 
     /* inline the manifest and engine into the export */
     var manifestSrc = document.querySelector('script[src*="manifest"]');
@@ -484,7 +518,7 @@
       '  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@' + P.fontWeight + ';800&family=Inter:wght@300;400;500&display=swap" rel="stylesheet"/>',
       '  <style>',
       '    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}',
-      '    :root{--accent:' + ac + ';--accent2:' + ac2 + ';--white:#F0EEF8;--muted:#6666AA;}',
+      '    :root{--accent:' + ac + ';--accent2:' + ac2 + ';--white:#F0EEF8;--muted:#6666AA;--cta-text:' + ctaText + ';}' ,
       '    html{overflow-x:hidden;overflow-y:scroll;-webkit-overflow-scrolling:touch;}',
       '    body{width:100%;height:500vh;background:rgb(' + Math.round(P.bgR*255) + ',' + Math.round(P.bgG*255) + ',' + Math.round(P.bgB*255) + ');overflow:hidden;}',
       '    #stage{position:fixed;top:0;left:0;width:100vw;height:100vh;height:100dvh;overflow:hidden;touch-action:pan-y;}',
@@ -515,7 +549,7 @@
       '    #hero-sub.in{opacity:1;transform:translateY(0);}',
       '    #hero-cta{',
       '      margin-top:2rem;',
-      '      background:var(--accent);color:#fff;',
+      '      background:var(--accent);color:var(--cta-text);',
       '      padding:0.85rem 2.25rem;border-radius:8px;',
       '      font-family:\'Inter\',sans-serif;font-weight:500;font-size:0.95rem;',
       '      text-decoration:none;border:none;cursor:pointer;',
@@ -581,6 +615,16 @@
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(a.href);
+  }
+
+  /* ── hex to rgb helper for cursor colour ── */
+  function _hexToRgb(hex) {
+    hex = hex.replace('#','');
+    if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+    var r = parseInt(hex.substr(0,2),16);
+    var g = parseInt(hex.substr(2,2),16);
+    var b = parseInt(hex.substr(4,2),16);
+    return r+','+g+','+b;
   }
 
   /* ── HTML escape helper ── */
