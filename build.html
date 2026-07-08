@@ -700,6 +700,47 @@
       <!-- three.js canvas — hidden until first generate -->
       <canvas id="preview-canvas" style="display:none;"></canvas>
 
+      <!-- text overlay — mirrors generated copy over the preview canvas -->
+      <div id="preview-overlay" style="
+        position:absolute;inset:0;
+        display:none;
+        flex-direction:column;align-items:center;justify-content:center;
+        text-align:center;padding:2rem;
+        pointer-events:none;z-index:8;
+      ">
+        <h1 id="ov-headline" style="
+          font-family:'Syne',sans-serif;
+          font-size:clamp(1.8rem,5vw,4rem);
+          font-weight:700;
+          letter-spacing:-0.02em;
+          line-height:1.06;
+          color:#F0EEF8;
+          text-shadow:0 2px 24px rgba(0,0,0,0.6);
+          opacity:0;transform:translateY(20px);
+          transition:opacity 0.7s ease 0.2s,transform 0.7s ease 0.2s;
+        "></h1>
+        <p id="ov-sub" style="
+          margin-top:1rem;
+          font-family:'Inter',sans-serif;
+          font-size:clamp(0.85rem,1.8vw,1.05rem);
+          font-weight:300;
+          color:rgba(240,238,248,0.55);
+          max-width:48ch;line-height:1.65;
+          text-shadow:0 1px 12px rgba(0,0,0,0.5);
+          opacity:0;transform:translateY(14px);
+          transition:opacity 0.7s ease 0.4s,transform 0.7s ease 0.4s;
+        "></p>
+        <a id="ov-cta" href="#" style="
+          margin-top:1.8rem;
+          background:var(--indigo);color:#fff;
+          padding:0.8rem 2rem;border-radius:8px;
+          font-family:'Inter',sans-serif;font-weight:500;font-size:0.9rem;
+          text-decoration:none;pointer-events:all;
+          opacity:0;transform:translateY(10px);
+          transition:opacity 0.6s ease 0.6s,transform 0.6s ease 0.6s;
+        "></a>
+      </div>
+
       <!-- toolbar -->
       <div id="preview-toolbar">
         <button class="toolbar-btn" id="btn-device-mobile" title="Mobile preview">
@@ -815,6 +856,16 @@ btnGenerate.addEventListener('click', function() {
   /* Stop any existing render */
   if (window.HeroPipe) window.HeroPipe.stop();
 
+  /* reset text overlay */
+  var _ov = document.getElementById('preview-overlay');
+  if (_ov) {
+    _ov.style.display = 'none';
+    ['ov-headline','ov-sub','ov-cta'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) { el.style.opacity='0'; el.style.transform='translateY(20px)'; }
+    });
+  }
+
   /* Show canvas, hide empty state */
   previewEmpty.style.display = 'none';
   previewCanvas.style.display = 'block';
@@ -833,6 +884,33 @@ btnGenerate.addEventListener('click', function() {
     btnExport.disabled = false;
     if (state.apiKey) btnRefine.disabled = false;
     setStatus('ready', 'Generated');
+
+    /* show text overlay with generated copy */
+    var overlay = document.getElementById('preview-overlay');
+    var ovH     = document.getElementById('ov-headline');
+    var ovS     = document.getElementById('ov-sub');
+    var ovC     = document.getElementById('ov-cta');
+    if (overlay && ovH && ovS && ovC) {
+      ovH.textContent = cfg.headline    || '';
+      ovS.textContent = cfg.subHeadline || '';
+      ovC.textContent = cfg.cta         || '';
+      /* apply typography weight from config */
+      var typoW = {'light':300,'regular':400,'bold':700,'heavy':800,'ultrawide':700};
+      ovH.style.fontWeight    = typoW[cfg.typography] || 700;
+      ovH.style.letterSpacing = cfg.typography === 'ultrawide' ? '0.1em' : '-0.02em';
+      overlay.style.display   = 'flex';
+      /* trigger entrance transitions */
+      setTimeout(function() {
+        ovH.style.opacity   = '1'; ovH.style.transform = 'translateY(0)';
+        ovS.style.opacity   = '1'; ovS.style.transform = 'translateY(0)';
+        ovC.style.opacity   = '1'; ovC.style.transform = 'translateY(0)';
+      }, 80);
+      /* accent colour on CTA */
+      if (window.HeroPipe && window.HeroPipeManifest) {
+        var cp = window.HeroPipeManifest.colours[cfg.colour];
+        if (cp) ovC.style.background = cp.params.accentHex;
+      }
+    }
   } else {
     setStatus('error', 'Engine not loaded');
   }
