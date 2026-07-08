@@ -504,8 +504,10 @@
     /* inline the manifest and engine into the export */
     var manifestSrc = document.querySelector('script[src*="manifest"]');
     var engineSrc   = document.querySelector('script[src*="engine"]');
+    var cursorSrc   = document.querySelector('script[src*="cursor"]');
     var manifestUrl = manifestSrc ? manifestSrc.src : '';
     var engineUrl   = engineSrc   ? engineSrc.src   : '';
+    var cursorUrl   = cursorSrc   ? cursorSrc.src   : '';
 
     var html = [
       '<!DOCTYPE html>',
@@ -579,6 +581,7 @@
       '<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>',
       manifestUrl ? '<script src="' + manifestUrl + '"><\/script>' : '',
       engineUrl   ? '<script src="' + engineUrl   + '"><\/script>' : '',
+      cursorUrl   ? '<script src="' + cursorUrl   + '"><\/script>' : '',
       '<script>',
       '(function(){',
       '  var config=' + JSON.stringify(config) + ';',
