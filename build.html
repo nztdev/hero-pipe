@@ -998,29 +998,55 @@ document.addEventListener('keydown', function(e) {
 });
 
 /* ── DEVICE PREVIEW ── */
+function reRenderAtCurrentSize() {
+  if (!state.config || !window.HeroPipe) return;
+  /* wait one frame for CSS to settle, then resize canvas and re-render */
+  requestAnimationFrame(function() {
+    var w = previewContainer.clientWidth;
+    var h = previewContainer.clientHeight;
+    if (!w || !h) return;
+    previewCanvas.width  = w;
+    previewCanvas.height = h;
+    window.HeroPipe.stop();
+    state.ctrl = window.HeroPipe.render(state.config, previewCanvas);
+    updatePreviewSize();
+  });
+}
+
 btnDeviceMobile.addEventListener('click', function() {
   state.device = 'mobile';
-  previewContainer.style.maxWidth  = '390px';
-  previewContainer.style.maxHeight = '844px';
-  previewContainer.style.margin    = 'auto';
-  previewContainer.style.top       = '50%';
-  previewContainer.style.transform = 'translateY(-50%)';
-  previewContainer.style.bottom    = 'auto';
+  previewContainer.style.position     = 'absolute';
+  previewContainer.style.width        = '390px';
+  previewContainer.style.height       = '844px';
+  previewContainer.style.maxWidth     = '390px';
+  previewContainer.style.maxHeight    = '844px';
+  previewContainer.style.left         = '50%';
+  previewContainer.style.top          = '50%';
+  previewContainer.style.transform    = 'translate(-50%, -50%)';
+  previewContainer.style.bottom       = 'auto';
+  previewContainer.style.right        = 'auto';
   previewContainer.style.borderRadius = '16px';
-  previewContainer.style.border    = '1px solid rgba(255,255,255,0.1)';
-  updatePreviewSize();
+  previewContainer.style.border       = '1px solid rgba(255,255,255,0.12)';
+  previewContainer.style.overflow     = 'hidden';
+  reRenderAtCurrentSize();
 });
+
 btnDeviceDesktop.addEventListener('click', function() {
   state.device = 'desktop';
-  previewContainer.style.maxWidth   = '';
-  previewContainer.style.maxHeight  = '';
-  previewContainer.style.margin     = '';
-  previewContainer.style.top        = '0';
-  previewContainer.style.transform  = '';
-  previewContainer.style.bottom     = '0';
+  previewContainer.style.position     = 'absolute';
+  previewContainer.style.width        = '';
+  previewContainer.style.height       = '';
+  previewContainer.style.maxWidth     = '';
+  previewContainer.style.maxHeight    = '';
+  previewContainer.style.left         = '0';
+  previewContainer.style.top          = '0';
+  previewContainer.style.transform    = '';
+  previewContainer.style.bottom       = '0';
+  previewContainer.style.right        = '0';
   previewContainer.style.borderRadius = '';
-  previewContainer.style.border     = '';
-  updatePreviewSize();
+  previewContainer.style.border       = '';
+  previewContainer.style.overflow     = 'hidden';
+  reRenderAtCurrentSize();
 });
 
 /* ── PREVIEW SIZE INDICATOR ── */
