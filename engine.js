@@ -68,14 +68,39 @@
       cta:        cfg.cta,
 
       /* particles */
-      particleCount:  Math.round(partP.count * (window.innerWidth < 600 ? 0.55 : 1)),
-      particleSizeMin:partP.sizeMin,
-      particleSizeMax:partP.sizeMax,
-      particleFocusMax:partP.focusMax,
-      particleSwirlMax:partP.swirlMax,
-      particleDriftX: partP.driftX * energyP.speedMult,
-      particleDriftY: partP.driftY * energyP.speedMult,
-      particleSpeed:  energyP.speedMult,
+      particleCount:    Math.round(partP.count * (window.innerWidth < 600 ? 0.55 : 1)),
+      particleSizeMin:  partP.sizeMin,
+      particleSizeMax:  partP.sizeMax,
+      particleFocusMax: partP.focusMax,
+      particleSwirlMax: partP.swirlMax,
+      particleDriftX:   partP.driftX * energyP.speedMult,
+      particleDriftY:   partP.driftY * energyP.speedMult,
+      particleSpeed:    energyP.speedMult,
+      particleMode:     partP.mode || 'default',
+      /* mode-specific params */
+      particleWaveCount:       partP.waveCount       || 5,
+      particleWaveAmplitude:   partP.waveAmplitude   || 18,
+      particleWavePulseSpeed:  partP.wavePulseSpeed  || 1.4,
+      particleLayerSpread:     partP.layerSpread     || 60,
+      particleHueShiftSpeed:   partP.hueShiftSpeed   || 0.15,
+      particleLayerSpeeds:     partP.layerSpeeds     || [0.15, 0.5, 1.0],
+      particleLayerSizes:      partP.layerSizes      || [0.4, 1.0, 1.8],
+      particleBlobCount:       partP.blobCount       || 4,
+      particleBlobRadius:      partP.blobRadius      || 22,
+      particleBlobMergeSpeed:  partP.blobMergeSpeed  || 0.3,
+      particleTunnelSpeed:     partP.tunnelSpeed     || 1.2,
+      particleTunnelRadius:    partP.tunnelRadius    || 40,
+      particleArmCount:        partP.armCount        || 3,
+      particleArmTightness:    partP.armTightness    || 0.4,
+      particleCoreRadius:      partP.coreRadius      || 8,
+      particleGridCols:        partP.gridCols        || 50,
+      particleGridRows:        partP.gridRows        || 30,
+      particleDistortAmplitude:partP.distortAmplitude|| 12,
+      particleDistortSpeed:    partP.distortSpeed    || 0.8,
+      particleTerrainWidth:    partP.terrainWidth    || 120,
+      particleTerrainDepth:    partP.terrainDepth    || 80,
+      particleTerrainAmplitude:partP.terrainAmplitude|| 20,
+      particleTerrainSpeed:    partP.terrainSpeed    || 0.4,
 
       /* colour */
       hue:    colourP.hue,
@@ -126,6 +151,10 @@
      Returns a controller object with .stop()
   ══════════════════════════════════════════ */
 
+  /* mode index map for shader */
+  var _modeMap = {'default':0,'nebula':0,'network':0,'constellation':0,'aura':0,'grid':0,'dust':0,'rain':0,'bloom':0,'shards':0,'waves':0,'fireflies':0,'matrix':0,'smoke':0,'crystal':0,'waves-pulse':1,'aurora':2,'parallax':3,'blobs':4,'wormhole':5,'galaxy':6,'grid-distort':7,'terrain':8};
+  function _modeIndex(mode) { return _modeMap[mode] !== undefined ? _modeMap[mode] : 0; }
+
   var _activeRenderer = null;
   var _activeRAF      = null;
 
@@ -163,12 +192,117 @@
     var sz    = new Float32Array(count);
 
     for (var i = 0; i < count; i++) {
-      var r  = 55 + Math.random() * 90;
-      var th = Math.random() * Math.PI * 2;
-      var ph = Math.acos(2 * Math.random() - 1);
-      pos[i*3]   = r * Math.sin(ph) * Math.cos(th);
-      pos[i*3+1] = r * Math.sin(ph) * Math.sin(th);
-      pos[i*3+2] = r * Math.cos(ph) - 30;
+      var px, py, pz, hv;
+      var mode = P.particleMode || 'default';
+      var fi = i / count; /* normalised 0-1 index */
+
+      if (mode === 'waves-pulse' || mode === 'aurora') {
+        /* sine wave / aurora: particles in horizontal bands */
+        var wCount = P.particleWaveCount || 5;
+        var wAmp   = P.particleWaveAmplitude || 18;
+        var band   = Math.floor(fi * wCount);
+        var bandT  = (fi * wCount) % 1;
+        px = (Math.random() - 0.5) * 160;
+        py = (band / wCount - 0.5) * (P.particleLayerSpread || 60) + (mode === 'aurora' ? 0 : Math.sin(bandT * Math.PI * 2) * wAmp * 0.3);
+        pz = (Math.random() - 0.5) * 60 - 20;
+        hv = P.hue + (band / wCount) * (P.particleHueShiftSpeed || 0.15);
+
+      } else if (mode === 'parallax') {
+        /* depth parallax: 3 distinct Z layers */
+        var layer = i % 3;
+        var lSpeeds = P.particleLayerSpeeds || [0.15, 0.5, 1.0];
+        var lSizes  = P.particleLayerSizes  || [0.4, 1.0, 1.8];
+        var r = 40 + Math.random() * 70;
+        var th2 = Math.random() * Math.PI * 2;
+        px = r * Math.cos(th2);
+        py = (Math.random() - 0.5) * 80;
+        pz = layer === 0 ? -60 - Math.random()*30 : layer === 1 ? -20 - Math.random()*20 : 10 + Math.random()*20;
+        sz[i] = (P.particleSizeMin || 0.3) * lSizes[layer] + Math.random() * (P.particleSizeMax || 2.0) * lSizes[layer] * 0.5;
+        hv = P.hue + (Math.random() - 0.5) * 0.06;
+
+      } else if (mode === 'blobs') {
+        /* morphing blobs: particles clustered around N blob centres */
+        var bCount  = P.particleBlobCount  || 4;
+        var bRadius = P.particleBlobRadius || 22;
+        var bIdx    = Math.floor(Math.random() * bCount);
+        var angle3  = (bIdx / bCount) * Math.PI * 2;
+        var bCx = Math.cos(angle3) * 35;
+        var bCy = Math.sin(angle3) * 20;
+        var bCz = (Math.random() - 0.5) * 20 - 15;
+        var br  = Math.random() * bRadius;
+        var ba  = Math.random() * Math.PI * 2;
+        px = bCx + Math.cos(ba) * br;
+        py = bCy + Math.sin(ba) * br * 0.6;
+        pz = bCz + (Math.random() - 0.5) * 10;
+        hv = P.hue + (bIdx / bCount) * 0.08;
+
+      } else if (mode === 'wormhole') {
+        /* wormhole: spiral tube converging to centre */
+        var tRadius = P.particleTunnelRadius || 40;
+        var tAngle  = fi * Math.PI * 2 * 8; /* 8 spirals */
+        var tDepth  = (fi - 0.5) * 100;
+        var tR      = tRadius * (1 - fi * 0.85); /* taper toward centre */
+        px = Math.cos(tAngle) * tR + (Math.random()-0.5)*3;
+        py = Math.sin(tAngle) * tR + (Math.random()-0.5)*3;
+        pz = tDepth;
+        hv = P.hue + fi * 0.12;
+
+      } else if (mode === 'galaxy') {
+        /* galaxy spiral: logarithmic spiral arms */
+        var armCount  = P.particleArmCount    || 3;
+        var armTight  = P.particleArmTightness|| 0.4;
+        var arm       = Math.floor(Math.random() * armCount);
+        var armOffset = (arm / armCount) * Math.PI * 2;
+        var dist      = 8 + Math.random() * 65;
+        var spiralA   = armOffset + armTight * Math.log(dist + 1);
+        var scatter   = (Math.random() - 0.5) * dist * 0.25;
+        px = Math.cos(spiralA) * dist + Math.cos(spiralA + Math.PI/2) * scatter;
+        py = (Math.random() - 0.5) * 12;
+        pz = Math.sin(spiralA) * dist + Math.sin(spiralA + Math.PI/2) * scatter - 20;
+        hv = P.hue + (arm / armCount) * 0.1 + (dist / 65) * 0.05;
+
+      } else if (mode === 'grid-distort') {
+        /* grid distortion: regular grid, distortion applied in shader */
+        var gCols = P.particleGridCols || 50;
+        var gRows = P.particleGridRows || 30;
+        var gCol  = i % gCols;
+        var gRow  = Math.floor(i / gCols) % gRows;
+        px = (gCol / gCols - 0.5) * 140;
+        py = (gRow / gRows - 0.5) * 80;
+        pz = -20 + (Math.random()-0.5)*4;
+        hv = P.hue + (gCol / gCols) * 0.04;
+
+      } else if (mode === 'terrain') {
+        /* terrain wave: grid on XZ plane, Y driven by noise */
+        var tW  = P.particleTerrainWidth || 120;
+        var tD  = P.particleTerrainDepth || 80;
+        var tCols2 = Math.sqrt(count) | 0;
+        var tCol2  = i % tCols2;
+        var tRow2  = Math.floor(i / tCols2);
+        px = (tCol2 / tCols2 - 0.5) * tW;
+        pz = (tRow2 / tCols2 - 0.5) * tD - 15;
+        /* multi-octave approximation using sin/cos sums */
+        var amp = P.particleTerrainAmplitude || 20;
+        py = Math.sin(px * 0.08) * amp * 0.5
+           + Math.cos(pz * 0.06) * amp * 0.35
+           + Math.sin((px + pz) * 0.04) * amp * 0.15
+           - 18;
+        hv = P.hue + (py / amp) * 0.06;
+
+      } else {
+        /* default: sphere distribution */
+        var r2 = 55 + Math.random() * 90;
+        var th3 = Math.random() * Math.PI * 2;
+        var ph3 = Math.acos(2 * Math.random() - 1);
+        px = r2 * Math.sin(ph3) * Math.cos(th3);
+        py = r2 * Math.sin(ph3) * Math.sin(th3);
+        pz = r2 * Math.cos(ph3) - 30;
+        hv = P.hue + (Math.random() - 0.5) * 0.08;
+      }
+
+      pos[i*3]   = px;
+      pos[i*3+1] = py;
+      pos[i*3+2] = pz;
       var hv = P.hue + (Math.random() - 0.5) * 0.08;
       var c  = new THREE.Color().setHSL(hv, P.sat, P.bright * (0.5 + Math.random() * 0.5));
       col[i*3] = c.r; col[i*3+1] = c.g; col[i*3+2] = c.b;
@@ -183,30 +317,77 @@
     /* ── particle shader ── */
     var mat = new THREE.ShaderMaterial({
       uniforms: {
-        uTime:    { value: 0 },
-        uOpacity: { value: 0 },
-        uFocus:   { value: 0 },
-        uHue:     { value: P.hue },
-        uSat:     { value: P.sat },
-        uBright:  { value: P.bright },
-        uSpeedX:  { value: P.particleDriftX },
-        uSpeedY:  { value: P.particleDriftY },
-        uSwirl:   { value: 0 },
-        uPulse:   { value: 0 },
+        uTime:       { value: 0 },
+        uOpacity:    { value: 0 },
+        uFocus:      { value: 0 },
+        uHue:        { value: P.hue },
+        uSat:        { value: P.sat },
+        uBright:     { value: P.bright },
+        uSpeedX:     { value: P.particleDriftX },
+        uSpeedY:     { value: P.particleDriftY },
+        uSwirl:      { value: 0 },
+        uPulse:      { value: 0 },
+        uMode:       { value: _modeIndex(P.particleMode) },
+        uWavePulse:  { value: P.particleWavePulseSpeed  || 1.4 },
+        uTunnelSpd:  { value: P.particleTunnelSpeed     || 1.2 },
+        uDistortAmp: { value: P.particleDistortAmplitude|| 12  },
+        uDistortSpd: { value: P.particleDistortSpeed    || 0.8 },
+        uTerrainSpd: { value: P.particleTerrainSpeed    || 0.4 },
+        uTerrainAmp: { value: P.particleTerrainAmplitude|| 20  },
       },
       vertexShader: [
         'attribute float size;',
         'varying vec3 vPos;',
-        'uniform float uTime,uFocus,uSpeedX,uSpeedY,uSwirl,uPulse;',
+        'uniform float uTime,uFocus,uSpeedX,uSpeedY,uSwirl,uPulse,uMode,uDistortAmp,uDistortSpd,uWavePulse,uTunnelSpd,uTerrainSpd,uTerrainAmp;',
         'void main(){',
         '  vec3 p=position;',
-        '  p.y+=sin(uTime*uSpeedY*0.28+p.x*0.05)*1.4*(1.0-uFocus*0.8);',
-        '  p.x+=cos(uTime*uSpeedX*0.18+p.z*0.04)*1.0*(1.0-uFocus*0.7);',
+        '  float m=uMode;',
+        '  if(m<0.5){',
+        '    p.y+=sin(uTime*uSpeedY*0.28+p.x*0.05)*1.4*(1.0-uFocus*0.8);',
+        '    p.x+=cos(uTime*uSpeedX*0.18+p.z*0.04)*1.0*(1.0-uFocus*0.7);',
+        '  } else if(m<1.5){',
+        '    float pulse=sin(uTime*uWavePulse+p.x*0.12)*8.0;',
+        '    p.y+=pulse*(1.0-uFocus*0.5);',
+        '    p.x+=sin(uTime*0.3+p.y*0.08)*2.0;',
+        '  } else if(m<2.5){',
+        '    p.x+=sin(uTime*0.18+p.y*0.06)*6.0;',
+        '    p.y+=cos(uTime*0.12+p.x*0.04)*2.5;',
+        '  } else if(m<3.5){',
+        '    float layer=step(-40.0,p.z)+step(-15.0,p.z);',
+        '    float spd=0.15+layer*0.35;',
+        '    p.y+=sin(uTime*spd*0.28+p.x*0.05)*1.4;',
+        '    p.x+=cos(uTime*spd*0.18+p.z*0.04)*1.0;',
+        '  } else if(m<4.5){',
+        '    p.x+=sin(uTime*0.22+p.y*0.08)*4.0;',
+        '    p.y+=cos(uTime*0.18+p.x*0.06)*3.0;',
+        '    p.z+=sin(uTime*0.14+p.x*0.04)*2.0;',
+        '  } else if(m<5.5){',
+        '    float ang=uTime*uTunnelSpd*0.4;',
+        '    float cx=p.x*cos(ang)-p.y*sin(ang);',
+        '    float cy=p.x*sin(ang)+p.y*cos(ang);',
+        '    p.x=cx; p.y=cy;',
+        '    p.z=mod(p.z+uTime*uTunnelSpd*2.0+50.0,100.0)-50.0;',
+        '  } else if(m<6.5){',
+        '    float ga=uTime*0.08;',
+        '    float gcx=p.x*cos(ga)-p.z*sin(ga);',
+        '    float gcz=p.x*sin(ga)+p.z*cos(ga);',
+        '    p.x=gcx; p.z=gcz;',
+        '    p.y+=sin(uTime*0.15+length(p.xz)*0.05)*1.5;',
+        '  } else if(m<7.5){',
+        '    float dx=sin(uTime*uDistortSpd+p.x*0.15)*uDistortAmp;',
+        '    float dy=cos(uTime*uDistortSpd*0.7+p.y*0.12)*uDistortAmp*0.6;',
+        '    p.y+=dx*0.5+dy*0.3;',
+        '    p.x+=cos(uTime*uDistortSpd*0.5+p.y*0.1)*uDistortAmp*0.3;',
+        '  } else {',
+        '    float tw=sin(uTime*uTerrainSpd+p.x*0.08)*uTerrainAmp*0.3;',
+        '    float tw2=cos(uTime*uTerrainSpd*0.6+p.z*0.06)*uTerrainAmp*0.2;',
+        '    p.y+=tw+tw2;',
+        '  }',
         '  if(uSwirl>0.0){',
-        '    float angle=uSwirl*uTime*0.4+length(p.xz)*0.02;',
-        '    float cx=p.x*cos(angle)-p.z*sin(angle);',
-        '    float cz=p.x*sin(angle)+p.z*cos(angle);',
-        '    p.x=mix(p.x,cx,uSwirl*0.5);p.z=mix(p.z,cz,uSwirl*0.5);',
+        '    float angle2=uSwirl*uTime*0.4+length(p.xz)*0.02;',
+        '    float sx=p.x*cos(angle2)-p.z*sin(angle2);',
+        '    float sz=p.x*sin(angle2)+p.z*cos(angle2);',
+        '    p.x=mix(p.x,sx,uSwirl*0.5);p.z=mix(p.z,sz,uSwirl*0.5);',
         '  }',
         '  p=mix(p,p*0.28,uFocus*0.68);',
         '  p+=normalize(p)*sin(uTime*1.1)*uPulse*4.0;',
@@ -375,6 +556,7 @@
       mat.uniforms.uFocus.value   = S.pFocus;
       mat.uniforms.uSwirl.value   = S.pSwirl;
       mat.uniforms.uPulse.value   = S.pPulse;
+      /* mode uniforms are set at init; only time changes per frame */
 
       particles.rotation.y = t * 0.022 * P.particleSpeed;
       particles.rotation.x = t * 0.007 * P.particleSpeed;
