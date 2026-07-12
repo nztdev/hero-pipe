@@ -373,7 +373,57 @@ window.HeroPipeManifest = {
     crystal: {
       label: 'Crystal',
       description: 'Faceted bright particles catching light. Luxury, clarity, precision.',
-      params: { count: 1600, sizeMin: 0.8, sizeMax: 2.8, focusMax: 0.45, swirlMax: 0.08, driftX: 0.5, driftY: 0.7 },
+      params: { count: 1600, sizeMin: 0.8, sizeMax: 2.8, focusMax: 0.45, swirlMax: 0.08, driftX: 0.5, driftY: 0.7, mode: 'default' },
+    },
+
+    /* ── NEW PRESETS v1.1 ── */
+
+    'bioluminescent-waves': {
+      label: 'Bioluminescent Waves',
+      description: 'Particles in sine wave formations that pulse with light. Organic, fluid, deep ocean energy.',
+      params: { count: 2800, sizeMin: 0.6, sizeMax: 2.2, focusMax: 0.3, swirlMax: 0, driftX: 0.8, driftY: 0.2, mode: 'waves-pulse', waveCount: 5, waveAmplitude: 18, wavePulseSpeed: 1.4 },
+    },
+
+    'aurora-layers': {
+      label: 'Aurora Layers',
+      description: 'Wide horizontal colour curtains that drift and shift hue. Northern lights, vast and slow.',
+      params: { count: 3200, sizeMin: 1.2, sizeMax: 4.0, focusMax: 0.1, swirlMax: 0, driftX: 0.3, driftY: 0.05, mode: 'aurora', layerCount: 4, layerSpread: 28, hueShiftSpeed: 0.15 },
+    },
+
+    'depth-parallax': {
+      label: 'Depth Parallax',
+      description: 'Three particle layers at different depths moving at different speeds. Genuine perceived 3D parallax on scroll.',
+      params: { count: 3000, sizeMin: 0.3, sizeMax: 2.5, focusMax: 0.2, swirlMax: 0, driftX: 0.6, driftY: 0.5, mode: 'parallax', layerSpeeds: [0.15, 0.5, 1.0], layerSizes: [0.4, 1.0, 1.8] },
+    },
+
+    'morphing-blobs': {
+      label: 'Morphing Blobs',
+      description: 'Organic fluid particle clusters that slowly deform and merge. Lava lamp physics, hypnotic.',
+      params: { count: 2400, sizeMin: 0.5, sizeMax: 2.0, focusMax: 0.6, swirlMax: 0.2, driftX: 0.4, driftY: 0.4, mode: 'blobs', blobCount: 4, blobRadius: 22, blobMergeSpeed: 0.3 },
+    },
+
+    wormhole: {
+      label: 'Wormhole',
+      description: 'Particles converging toward a central vanishing point. Pulls the viewer in, tunnel effect.',
+      params: { count: 3500, sizeMin: 0.3, sizeMax: 1.8, focusMax: 0.85, swirlMax: 0.6, driftX: 0.2, driftY: 0.2, mode: 'wormhole', tunnelSpeed: 1.2, tunnelRadius: 40 },
+    },
+
+    'galaxy-spiral': {
+      label: 'Galaxy Spiral',
+      description: 'Particles in logarithmic spiral arms rotating slowly. Cosmic scale, majestic.',
+      params: { count: 3200, sizeMin: 0.4, sizeMax: 1.6, focusMax: 0.25, swirlMax: 0.35, driftX: 0.15, driftY: 0.1, mode: 'galaxy', armCount: 3, armTightness: 0.4, coreRadius: 8 },
+    },
+
+    'grid-distortion': {
+      label: 'Grid Distortion',
+      description: 'A flat particle grid that ripples and warps in real time. Digital, glitchy, precise.',
+      params: { count: 2500, sizeMin: 0.4, sizeMax: 0.9, focusMax: 0.5, swirlMax: 0, driftX: 0.1, driftY: 0.1, mode: 'grid-distort', gridCols: 50, gridRows: 30, distortAmplitude: 12, distortSpeed: 0.8 },
+    },
+
+    'terrain-wave': {
+      label: 'Terrain Wave',
+      description: 'A 3D landscape surface of particles that undulates on scroll. Geological, powerful, grounded.',
+      params: { count: 2800, sizeMin: 0.5, sizeMax: 1.4, focusMax: 0.4, swirlMax: 0, driftX: 0.2, driftY: 0.05, mode: 'terrain', terrainWidth: 120, terrainDepth: 80, terrainAmplitude: 20, terrainSpeed: 0.4 },
     },
   },
 
