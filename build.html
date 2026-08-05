@@ -426,6 +426,7 @@
   <script src="manifest.js"></script>
   <script src="engine.js"></script>
   <script src="cursor.js"></script>
+  <script src="loader.js"></script>
 </head>
 <body>
 
@@ -640,6 +641,23 @@
       <div id="config-display">// Your config will appear here after generating.</div>
     </div>
 
+    <!-- LOADER -->
+    <div class="panel-section">
+      <div class="section-label">Entry Loader</div>
+      <div class="dropdown-grid">
+        <div class="dropdown-item full">
+          <span class="dropdown-label">Loader Style</span>
+          <select class="dropdown-select" id="sel-loader">
+            <option value="bloom">Bloom (iris open)</option>
+            <option value="fade">Fade</option>
+            <option value="wipe">Wipe</option>
+            <option value="bars">Bars</option>
+            <option value="glitch">Glitch</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
     <!-- CURSOR FX -->
     <div class="panel-section">
       <div class="section-label">Cursor FX</div>
@@ -848,7 +866,9 @@ function collectConfig() {
     headline:    inpHeadline.value  || 'Your Hero Section',
     subHeadline: inpSub.value       || 'Built with Hero\'s Pipe',
     cta:         inpCta.value       || 'Get started',
-    description: document.getElementById('describe-field').value.trim(),
+    description:  document.getElementById('describe-field').value.trim(),
+    loaderStyle:  document.getElementById('sel-loader').value || 'bloom',
+    loaderDuration: 1000,
   };
 }
 
