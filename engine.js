@@ -43,7 +43,9 @@
       cursorTrail:    true,
       cursorMagnetic: true,
       cursorCustom:   false,
-      cursorColor:    null, /* null = use accent colour */
+      cursorColor:    null,
+      loaderStyle:    'bloom',
+      loaderDuration: 1000,
     }, config);
 
     /* pull param blocks from manifest */
@@ -137,6 +139,10 @@
       cursorMagnetic:  cfg.cursorMagnetic !== false,
       cursorCustom:    cfg.cursorCustom || false,
       cursorColor:     cfg.cursorColor  || null,
+
+      /* loader */
+      loaderStyle:    cfg.loaderStyle    || 'bloom',
+      loaderDuration: cfg.loaderDuration || 1000,
 
       /* transition */
       transitionDuration: tranP.duration,
@@ -687,9 +693,11 @@
     var manifestSrc = document.querySelector('script[src*="manifest"]');
     var engineSrc   = document.querySelector('script[src*="engine"]');
     var cursorSrc   = document.querySelector('script[src*="cursor"]');
+    var loaderSrc   = document.querySelector('script[src*="loader"]');
     var manifestUrl = manifestSrc ? manifestSrc.src : '';
     var engineUrl   = engineSrc   ? engineSrc.src   : '';
     var cursorUrl   = cursorSrc   ? cursorSrc.src   : '';
+    var loaderUrl   = loaderSrc   ? loaderSrc.src   : '';
 
     var html = [
       '<!DOCTYPE html>',
@@ -764,6 +772,7 @@
       manifestUrl ? '<script src="' + manifestUrl + '"><\/script>' : '',
       engineUrl   ? '<script src="' + engineUrl   + '"><\/script>' : '',
       cursorUrl   ? '<script src="' + cursorUrl   + '"><\/script>' : '',
+      loaderUrl   ? '<script src="' + loaderUrl   + '"><\/script>' : '',
       '<script>',
       '(function(){',
       '  var config=' + JSON.stringify(config) + ';',
@@ -771,14 +780,25 @@
       '  var progress=document.getElementById("scroll-progress");',
       '  var ctrl;',
       '  window.addEventListener("load",function(){',
-      '    if(window.HeroPipe){',
-      '      ctrl=window.HeroPipe.render(config,canvas);',
-      '      ctrl.enableAutoScroll(false);',
+      '    if(window.HeroPipeLoader){',
+      '      window.HeroPipeLoader.init({',
+      '        style: config.loaderStyle||"bloom",',
+      '        duration: config.loaderDuration||1000,',
+      '        color: "#04040C",',
+      '        accentHex: config.accentHex||"#4B3BFF",',
+      '        onComplete: function(){',
+      '          if(window.HeroPipe){ctrl=window.HeroPipe.render(config,canvas);ctrl.enableAutoScroll(false);}',
+      '          setTimeout(function(){document.getElementById("hero-headline").classList.add("in");},80);',
+      '          setTimeout(function(){document.getElementById("hero-sub").classList.add("in");},80);',
+      '          setTimeout(function(){document.getElementById("hero-cta").classList.add("in");},80);',
+      '        }',
+      '      });',
+      '    } else {',
+      '      if(window.HeroPipe){ctrl=window.HeroPipe.render(config,canvas);ctrl.enableAutoScroll(false);}',
+      '      setTimeout(function(){document.getElementById("hero-headline").classList.add("in");},100);',
+      '      setTimeout(function(){document.getElementById("hero-sub").classList.add("in");},100);',
+      '      setTimeout(function(){document.getElementById("hero-cta").classList.add("in");},100);',
       '    }',
-      '    /* entrance animations */',
-      '    setTimeout(function(){document.getElementById("hero-headline").classList.add("in");},100);',
-      '    setTimeout(function(){document.getElementById("hero-sub").classList.add("in");},100);',
-      '    setTimeout(function(){document.getElementById("hero-cta").classList.add("in");},100);',
       '    /* scroll driver */',
       '    window.addEventListener("scroll",function(){',
       '      var p=window.scrollY/(document.body.scrollHeight-window.innerHeight);',
