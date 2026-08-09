@@ -440,6 +440,11 @@
           <span class="slabel">Camera Path</span><div class="camera-grid" id="d-camera-cards"></div>
           <span class="slabel">Entry Loader</span><div class="loader-grid" id="d-loader-cards"></div>
           <button class="btn-prev-loader" id="d-btn-prev-loader">▶ Preview loader animation</button>
+          <span class="slabel" style="margin-top:0.9rem;">Cursor Effects</span>
+          <div class="fx-row"><span>Spotlight</span><div class="toggle-wrap"><input type="checkbox" id="d-fx-spotlight" checked class="fx-toggle"/><span class="toggle-track"></span></div></div>
+          <div class="fx-row"><span>Particle Trail</span><div class="toggle-wrap"><input type="checkbox" id="d-fx-trail" checked class="fx-toggle"/><span class="toggle-track"></span></div></div>
+          <div class="fx-row"><span>Magnetic Elements</span><div class="toggle-wrap"><input type="checkbox" id="d-fx-magnetic" class="fx-toggle"/><span class="toggle-track"></span></div></div>
+          <div class="fx-row"><span>Custom Cursor</span><div class="toggle-wrap"><input type="checkbox" id="d-fx-cursor" class="fx-toggle"/><span class="toggle-track"></span></div></div>
         </div>
       </div>
 
@@ -720,10 +725,34 @@ function buildCards(containerId,type,items,current,onSelect){
   });
 }
 
+/* Applying a theme sets its recommended mood/particles/camera/colour.
+   This is what makes each theme visually distinct — themes are a
+   curated starting point, not just a label. */
+function applyThemeDefaults(themeKey){
+  var t=M.themes[themeKey];
+  if(!t)return;
+  state.config.theme     = themeKey;
+  state.config.mood      = t.defaultMood;
+  state.config.particles = t.defaultParticles;
+  state.config.camera    = t.defaultCamera;
+  state.config.colour    = t.defaultColour;
+  /* refresh any visible card grids to reflect the new selections */
+  ['d','m'].forEach(function(prefix){
+    var mg=document.getElementById(prefix+'-mood-cards');
+    if(mg)mg.querySelectorAll('.mood-card').forEach(function(c,i){c.classList.toggle('selected',Object.keys(M.moods)[i]===t.defaultMood);});
+    var pg=document.getElementById(prefix+'-particle-cards');
+    if(pg)pg.querySelectorAll('.particle-card').forEach(function(c,i){c.classList.toggle('selected',Object.keys(M.particles)[i]===t.defaultParticles);});
+    var camg=document.getElementById(prefix+'-camera-cards');
+    if(camg)camg.querySelectorAll('.camera-card').forEach(function(c,i){c.classList.toggle('selected',Object.keys(M.cameras)[i]===t.defaultCamera);});
+    var cg=document.getElementById(prefix+'-colour-swatches');
+    if(cg)cg.querySelectorAll('.colour-swatch').forEach(function(c,i){c.classList.toggle('selected',Object.keys(M.colours)[i]===t.defaultColour);});
+  });
+}
+
 function buildAllCards(prefix){
   if(!M)return;
   /* themes */
-  buildCards(prefix+'-theme-cards','theme',Object.keys(M.themes).map(function(k){return{key:k,html:'<span class="theme-card-icon">'+(THEME_ICONS[k]||'◈')+'</span><div class="theme-card-name">'+M.themes[k].label+'</div><div class="theme-card-desc">'+M.themes[k].description.split('.')[0]+'.</div>'};} ),state.config.theme,function(k){state.config.theme=k;renderHero(state.config,true);});
+  buildCards(prefix+'-theme-cards','theme',Object.keys(M.themes).map(function(k){return{key:k,html:'<span class="theme-card-icon">'+(THEME_ICONS[k]||'◈')+'</span><div class="theme-card-name">'+M.themes[k].label+'</div><div class="theme-card-desc">'+M.themes[k].description.split('.')[0]+'.</div>'};} ),state.config.theme,function(k){applyThemeDefaults(k);renderHero(state.config,true);});
   /* moods */
   buildCards(prefix+'-mood-cards','mood',Object.keys(M.moods).map(function(k){return{key:k,html:'<div class="mood-card-name">'+M.moods[k].label+'</div><div class="mood-card-desc">'+M.moods[k].description.split('.')[0]+'</div>'};} ),state.config.mood,function(k){state.config.mood=k;renderHero(state.config,true);});
   /* energy */
@@ -782,7 +811,7 @@ function buildMobileStep(n){
   if(n===1){
     var s=document.createElement('div');s.style.marginTop='0.25rem';
     var grid=document.createElement('div');grid.className='theme-grid';grid.id='m-theme-cards';s.appendChild(grid);body.appendChild(s);
-    buildCards('m-theme-cards','theme',Object.keys(M.themes).map(function(k){return{key:k,html:'<span class="theme-card-icon">'+(THEME_ICONS[k]||'◈')+'</span><div class="theme-card-name">'+M.themes[k].label+'</div>'};} ),state.config.theme,function(k){state.config.theme=k;renderHero(state.config,true);});
+    buildCards('m-theme-cards','theme',Object.keys(M.themes).map(function(k){return{key:k,html:'<span class="theme-card-icon">'+(THEME_ICONS[k]||'◈')+'</span><div class="theme-card-name">'+M.themes[k].label+'</div>'};} ),state.config.theme,function(k){applyThemeDefaults(k);renderHero(state.config,true);});
   }
   if(n===2){
     var ms=document.createElement('div');ms.style.marginTop='0.25rem';
@@ -810,9 +839,16 @@ function buildMobileStep(n){
     var llab=document.createElement('div');llab.className='slabel';llab.style.marginTop='0.75rem';llab.textContent='Entry Loader';mot.appendChild(llab);
     var lg=document.createElement('div');lg.className='loader-grid';lg.id='m-loader-cards';mot.appendChild(lg);
     var lpb=document.createElement('button');lpb.className='btn-prev-loader';lpb.textContent='▶ Preview loader';lpb.style.marginTop='0.5rem';lpb.addEventListener('click',previewLoader);mot.appendChild(lpb);
+    var fxlab=document.createElement('div');fxlab.className='slabel';fxlab.style.marginTop='0.9rem';fxlab.textContent='Cursor Effects';mot.appendChild(fxlab);
+    [['spotlight','Spotlight',true],['trail','Particle Trail',true],['magnetic','Magnetic Elements',false],['cursor','Custom Cursor',false]].forEach(function(f){
+      var row=document.createElement('div');row.className='fx-row';
+      row.innerHTML='<span>'+f[1]+'</span><div class="toggle-wrap"><input type="checkbox" id="m-fx-'+f[0]+'" '+(f[2]?'checked':'')+' class="fx-toggle"/><span class="toggle-track"></span></div>';
+      mot.appendChild(row);
+    });
     body.appendChild(mot);
     buildCards('m-camera-cards','camera',Object.keys(M.cameras).map(function(k){return{key:k,html:'<div class="camera-card-name">'+M.cameras[k].label+'</div>'};} ),state.config.camera,function(k){state.config.camera=k;renderHero(state.config,true);});
     ['bloom','fade','wipe','bars','glitch'].forEach(function(k){var labels={bloom:'Bloom',fade:'Fade',wipe:'Wipe',bars:'Bars',glitch:'Glitch'};var c=document.createElement('div');c.className='loader-card'+(k===state.config.loaderStyle?' selected':'');c.innerHTML='<div class="loader-card-name">'+labels[k]+'</div>';c.addEventListener('click',function(){lg.querySelectorAll('.loader-card').forEach(function(x){x.classList.remove('selected');});c.classList.add('selected');state.config.loaderStyle=k;});lg.appendChild(c);});
+    setTimeout(function(){wireCursorToggles('m');},50);
   }
   if(n===5){
     var ws=document.createElement('div');ws.style.marginTop='0.25rem';
@@ -887,7 +923,7 @@ function wireDesktopGuided(){
   for(var i=1;i<=5;i++){var d=document.createElement('div');d.className='step-dot-d'+(i===1?' active':'');d.dataset.step=i;d.addEventListener('click',function(){desktopGoToStep(parseInt(this.dataset.step));});dots.appendChild(d);}
   /* prev/next */
   document.getElementById('d-btn-prev').addEventListener('click',function(){desktopGoToStep(state.step-1);});
-  document.getElementById('d-btn-next').addEventListener('click',function(){desktopGoToStep(state.step+1);});
+  /* d-btn-next click handling is owned by desktopGoToStep() via onclick — no addEventListener here to avoid double-firing */
   /* text inputs */
   [{id:'d-headline',key:'headline'},{id:'d-sub',key:'subHeadline'},{id:'d-cta',key:'cta'}].forEach(function(x){
     var el=document.getElementById(x.id);if(!el)return;
@@ -898,11 +934,25 @@ function wireDesktopGuided(){
   document.getElementById('d-btn-ai').addEventListener('click',function(){this.disabled=true;runRefine(state.apiKey,function(){document.getElementById('d-btn-ai').disabled=false;});});
   /* loader preview */
   document.getElementById('d-btn-prev-loader').addEventListener('click',previewLoader);
+  /* cursor fx toggles (guided desktop) */
+  wireCursorToggles('d');
   /* export */
   document.getElementById('d-btn-export').addEventListener('click',exportHero);
 }
 
 /* ══ STUDIO WIRING ══ */
+function wireCursorToggles(prefix){
+  var map={'spotlight':'spotlight','trail':'trail','magnetic':'magnetic','cursor':'customCursor'};
+  Object.keys(map).forEach(function(suffix){
+    var el=document.getElementById(prefix+'-fx-'+suffix);
+    if(!el)return;
+    el.addEventListener('change',function(){
+      if(!window.HeroPipeCursor)return;
+      window.HeroPipeCursor.setEffect(map[suffix],el.checked);
+    });
+  });
+}
+
 function wireStudio(){
   document.getElementById('s-btn-generate').addEventListener('click',function(){
     state.config={
@@ -920,7 +970,8 @@ function wireStudio(){
   document.getElementById('s-btn-refine').addEventListener('click',function(){this.disabled=true;runRefine(state.apiKey,function(){document.getElementById('s-btn-refine').disabled=false;});});
   document.getElementById('s-btn-export').addEventListener('click',exportHero);
   document.getElementById('s-btn-prev-loader').addEventListener('click',previewLoader);
-  Array.from(document.querySelectorAll('.fx-toggle')).forEach(function(t){t.addEventListener('change',function(){if(!window.HeroPipeCursor)return;var map={'fx-spotlight':'spotlight','fx-trail':'trail','fx-magnetic':'magnetic','fx-cursor':'customCursor'};var fx=map[t.id];if(fx)window.HeroPipeCursor.setEffect(fx,t.checked);});});
+  Array.from(document.querySelectorAll('.fx-toggle')).forEach(function(t){t.id='s-fx-'+t.id.replace('fx-','');});
+  wireCursorToggles('s');
   /* resize */
   var handle=document.getElementById('resize-handle'),sp=document.getElementById('studio-panel'),dragging=false,sx,sw;
   handle.addEventListener('mousedown',function(e){dragging=true;sx=e.clientX;sw=sp.offsetWidth;document.body.style.cursor='col-resize';document.body.style.userSelect='none';});
