@@ -131,6 +131,7 @@
 
       /* scroll */
       scrollScrub: energyP.scrollScrub,
+      textParallax: energyP.textParallax || 0.3,
 
       /* cursor fx */
       cursorFX:        cfg.cursorFX !== false,
@@ -642,7 +643,7 @@
       'Improve this config. Return only valid JSON with the same 7 keys.',
     ].join('\n');
 
-    fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=' + apiKey, {
+    fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -716,7 +717,7 @@
       '    #stage{position:fixed;top:0;left:0;width:100vw;height:100vh;height:100dvh;overflow:hidden;touch-action:pan-y;}',
       '    #hero-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}',
       '    #vignette{position:absolute;inset:0;background:radial-gradient(ellipse 88% 88% at 50% 50%,transparent 32%,rgba(0,0,0,' + P.vignetteStrength + ') 100%);pointer-events:none;}',
-      '    #hero-content{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;pointer-events:none;}',
+      '    #hero-content{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;pointer-events:none;will-change:transform;transition:transform 0.15s linear;}',
       '    #hero-headline{',
       '      font-family:\'Syne\',sans-serif;',
       '      font-size:clamp(2.2rem,7vw,5.5rem);',
@@ -800,10 +801,17 @@
       '      setTimeout(function(){document.getElementById("hero-cta").classList.add("in");},100);',
       '    }',
       '    /* scroll driver */',
+      '    var heroContent=document.getElementById("hero-content");',
+      '    var textParallax=config.textParallax!==undefined?config.textParallax:0.3;',
       '    window.addEventListener("scroll",function(){',
       '      var p=window.scrollY/(document.body.scrollHeight-window.innerHeight);',
       '      if(ctrl)ctrl.setScroll(p);',
       '      if(progress)progress.style.transform="scaleX("+p+")";',
+      '      /* text moves at a different speed than the particle field for depth */',
+      '      if(heroContent){',
+      '        var offset=(p-0.5)*textParallax*120;',
+      '        heroContent.style.transform="translateY("+offset.toFixed(1)+"px)";',
+      '      }',
       '    },{passive:true});',
       '  });',
       '})();',
