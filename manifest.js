@@ -195,27 +195,27 @@ window.HeroPipeManifest = {
     contemplative: {
       label: 'Contemplative',
       description: 'Slow, meditative. Camera moves imperceptibly. Particles drift like breath.',
-      params: { speedMult: 0.35, scrollScrub: 2.2, cameraEase: 0.012 },
+      params: { speedMult: 0.35, scrollScrub: 2.2, cameraEase: 0.012, textParallax: 0.15 },
     },
     balanced: {
       label: 'Balanced',
       description: 'Natural pacing. Smooth transitions, readable motion.',
-      params: { speedMult: 1.0, scrollScrub: 1.6, cameraEase: 0.03 },
+      params: { speedMult: 1.0, scrollScrub: 1.6, cameraEase: 0.03, textParallax: 0.3 },
     },
     electric: {
       label: 'Electric',
       description: 'Fast, crackling energy. Particles move rapidly, transitions snap.',
-      params: { speedMult: 2.2, scrollScrub: 0.8, cameraEase: 0.07 },
+      params: { speedMult: 2.2, scrollScrub: 0.8, cameraEase: 0.07, textParallax: 0.55 },
     },
     frantic: {
       label: 'Frantic',
       description: 'Maximum energy. Everything moves fast, high particle activity.',
-      params: { speedMult: 3.5, scrollScrub: 0.5, cameraEase: 0.12 },
+      params: { speedMult: 3.5, scrollScrub: 0.5, cameraEase: 0.12, textParallax: 0.75 },
     },
     glacial: {
       label: 'Glacial',
       description: 'Extremely slow. Scene barely moves. Deep, patient contemplation.',
-      params: { speedMult: 0.15, scrollScrub: 3.5, cameraEase: 0.005 },
+      params: { speedMult: 0.15, scrollScrub: 3.5, cameraEase: 0.005, textParallax: 0.08 },
     },
   },
 
