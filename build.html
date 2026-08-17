@@ -49,6 +49,7 @@
       text-align:center;padding:2rem;pointer-events:none;z-index:8;
     }
     #ov-headline{
+      pointer-events:auto;cursor:default;
       font-family:'Syne',sans-serif;font-size:clamp(1.4rem,5vw,3.8rem);
       font-weight:700;letter-spacing:-0.02em;line-height:1.06;color:#F0EEF8;
       text-shadow:0 2px 24px rgba(0,0,0,0.6);
@@ -542,9 +543,9 @@
       </div>
       <canvas id="preview-canvas"></canvas>
       <div id="preview-overlay">
-        <div id="ov-headline"></div>
+        <div id="ov-headline" data-scramble></div>
         <p id="ov-sub"></p>
-        <a id="ov-cta" href="#">Get started</a>
+        <a id="ov-cta" href="#" data-tilt data-tilt-strength="8" data-tilt-scale="1.05">Get started</a>
       </div>
       <div id="preview-toolbar">
         <button class="toolbar-btn" id="btn-mobile-tog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="7" y="2" width="10" height="20" rx="2"/><circle cx="12" cy="18" r="1"/></svg>Mobile</button>
@@ -583,6 +584,7 @@
 <script src="engine.js"></script>
 <script src="cursor.js"></script>
 <script src="loader.js"></script>
+<script src="hover.js"></script>
 <script>
 /* ═══════════════════════════════════════════
    HERO'S PIPE BUILD PAGE — Guided + Studio + Mobile
@@ -637,6 +639,7 @@ function updatePreviewSize(){var r=previewContainer.getBoundingClientRect();docu
 function renderHero(cfg,silent){
   if(!window.HeroPipe)return;
   if(window.HeroPipeCursor)try{window.HeroPipeCursor.destroy();}catch(e){}
+  if(window.HeroPipeHover)try{window.HeroPipeHover.destroy();}catch(e){}
   window.HeroPipe.stop();
   previewEmpty.style.display='none';
   previewCanvas.style.display='block';
@@ -666,7 +669,11 @@ function updateOverlay(cfg){
   ovH.style.letterSpacing=cfg.typography==='ultrawide'?'0.1em':'-0.02em';
   if(window.HeroPipeManifest){var cp=window.HeroPipeManifest.colours[cfg.colour];if(cp)ovC.style.background=cp.params.accentHex;}
   [ovH,ovS,ovC].forEach(function(e){e.classList.remove('in');});
-  setTimeout(function(){ovH.classList.add('in');ovS.classList.add('in');ovC.classList.add('in');},80);
+  setTimeout(function(){
+    ovH.classList.add('in');ovS.classList.add('in');ovC.classList.add('in');
+    /* re-init hover effects now that text content is final */
+    if(window.HeroPipeHover)window.HeroPipeHover.init();
+  },80);
 }
 
 function previewLoader(){

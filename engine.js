@@ -695,10 +695,12 @@
     var engineSrc   = document.querySelector('script[src*="engine"]');
     var cursorSrc   = document.querySelector('script[src*="cursor"]');
     var loaderSrc   = document.querySelector('script[src*="loader"]');
+    var hoverSrc    = document.querySelector('script[src*="hover"]');
     var manifestUrl = manifestSrc ? manifestSrc.src : '';
     var engineUrl   = engineSrc   ? engineSrc.src   : '';
     var cursorUrl   = cursorSrc   ? cursorSrc.src   : '';
     var loaderUrl   = loaderSrc   ? loaderSrc.src   : '';
+    var hoverUrl    = hoverSrc    ? hoverSrc.src    : '';
 
     var html = [
       '<!DOCTYPE html>',
@@ -719,6 +721,7 @@
       '    #vignette{position:absolute;inset:0;background:radial-gradient(ellipse 88% 88% at 50% 50%,transparent 32%,rgba(0,0,0,' + P.vignetteStrength + ') 100%);pointer-events:none;}',
       '    #hero-content{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;pointer-events:none;will-change:transform;transition:transform 0.15s linear;}',
       '    #hero-headline{',
+      '      pointer-events:auto;cursor:default;',
       '      font-family:\'Syne\',sans-serif;',
       '      font-size:clamp(2.2rem,7vw,5.5rem);',
       '      font-weight:' + P.fontWeight + ';',
@@ -762,9 +765,9 @@
       '  <canvas id="hero-canvas"></canvas>',
       '  <div id="vignette"></div>',
       '  <div id="hero-content">',
-      '    <h1 id="hero-headline">' + _esc(P.headline) + '</h1>',
+      '    <h1 id="hero-headline" data-scramble>' + _esc(P.headline) + '</h1>',
       '    <p  id="hero-sub">' + _esc(P.subHeadline) + '</p>',
-      '    <a  id="hero-cta" href="#">' + _esc(P.cta) + '</a>',
+      '    <a  id="hero-cta" href="#" data-tilt data-tilt-strength="8" data-tilt-scale="1.05">' + _esc(P.cta) + '</a>',
       '  </div>',
       '  <div id="scroll-progress"></div>',
       '</div>',
@@ -774,6 +777,7 @@
       engineUrl   ? '<script src="' + engineUrl   + '"><\/script>' : '',
       cursorUrl   ? '<script src="' + cursorUrl   + '"><\/script>' : '',
       loaderUrl   ? '<script src="' + loaderUrl   + '"><\/script>' : '',
+      hoverUrl    ? '<script src="' + hoverUrl    + '"><\/script>' : '',
       '<script>',
       '(function(){',
       '  var config=' + JSON.stringify(config) + ';',
@@ -792,6 +796,7 @@
       '          setTimeout(function(){document.getElementById("hero-headline").classList.add("in");},80);',
       '          setTimeout(function(){document.getElementById("hero-sub").classList.add("in");},80);',
       '          setTimeout(function(){document.getElementById("hero-cta").classList.add("in");},80);',
+      '          if(window.HeroPipeHover)setTimeout(function(){window.HeroPipeHover.init();},150);',
       '        }',
       '      });',
       '    } else {',
@@ -799,6 +804,7 @@
       '      setTimeout(function(){document.getElementById("hero-headline").classList.add("in");},100);',
       '      setTimeout(function(){document.getElementById("hero-sub").classList.add("in");},100);',
       '      setTimeout(function(){document.getElementById("hero-cta").classList.add("in");},100);',
+      '      if(window.HeroPipeHover)setTimeout(function(){window.HeroPipeHover.init();},170);',
       '    }',
       '    /* scroll driver */',
       '    var heroContent=document.getElementById("hero-content");',
