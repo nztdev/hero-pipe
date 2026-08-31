@@ -543,7 +543,7 @@
       </div>
       <canvas id="preview-canvas"></canvas>
       <div id="preview-overlay">
-        <div id="ov-headline" data-scramble></div>
+        <div id="ov-headline"></div>
         <p id="ov-sub"></p>
         <a id="ov-cta" href="#" data-tilt data-tilt-strength="8" data-tilt-scale="1.05">Get started</a>
       </div>
@@ -635,6 +635,54 @@ var configDisp = document.getElementById('config-display');
 function setStatus(type,text){statusDot.className='status-dot '+(type||'');statusText.textContent=text;}
 function updatePreviewSize(){var r=previewContainer.getBoundingClientRect();document.getElementById('preview-size').textContent=Math.round(r.width)+'×'+Math.round(r.height);}
 
+/* ── SPRING TEXT PHYSICS ──
+   Mirrors the export's headline spring simulation exactly, so what
+   you see in preview is what ships. Letters react to scroll velocity
+   then settle via a simple damped spring. */
+function heroPipeSpringText(el,text){
+  el.textContent='';
+  var spans=[];
+  for(var i=0;i<text.length;i++){
+    var ch=text[i];
+    var sp=document.createElement('span');
+    sp.textContent=ch===' '?'\u00A0':ch;
+    sp.style.display='inline-block';sp.style.willChange='transform';
+    el.appendChild(sp);
+    spans.push({el:sp,y:0,vy:0,rot:0,vr:0});
+  }
+  var lastP=null;
+  return function(p){
+    if(el.children.length!==spans.length)return;
+    if(lastP===null)lastP=p;
+    var dv=(p-lastP)*900;lastP=p;
+    var n=spans.length;
+    for(var i=0;i<n;i++){
+      var s=spans[i];var w=1-(i/Math.max(1,n-1))*0.5;
+      var tY=dv*w;var fY=(tY-s.y)*0.18;s.vy=(s.vy+fY)*0.82;s.y+=s.vy;
+      var tR=dv*0.35*w;var fR=(tR-s.rot)*0.18;s.vr=(s.vr+fR)*0.82;s.rot+=s.vr;
+      s.el.style.transform='translateY('+s.y.toFixed(2)+'px) rotateZ('+s.rot.toFixed(2)+'deg)';
+    }
+  };
+}
+var headlineSpringUpdate=null;
+
+/* ── LIVE TEXT PARALLAX ──
+   Mirrors the parallax behaviour that exported heroes get from real
+   scroll — but since the preview auto-simulates scroll internally,
+   we read the render controller's progress every frame and apply
+   the same offset formula to the overlay. Keeps preview and export
+   visually honest with each other for any scroll-driven feature. */
+(function parallaxLoop(){
+  requestAnimationFrame(parallaxLoop);
+  if(!state.ctrl||!state.generated||!window.HeroPipe)return;
+  var p = state.ctrl.getScroll ? state.ctrl.getScroll() : 0.5;
+  var resolved = window.HeroPipe.resolve(state.config);
+  var tp = resolved.textParallax!==undefined ? resolved.textParallax : 0.3;
+  var offset = (p-0.5)*tp*60; /* scaled down vs export's *120 to suit the smaller preview pane */
+  previewOverlay.style.transform = 'translateY('+offset.toFixed(1)+'px)';
+  if(headlineSpringUpdate)headlineSpringUpdate(p);
+})();
+
 /* ── RENDER ── */
 function renderHero(cfg,silent){
   if(!window.HeroPipe)return;
@@ -661,7 +709,7 @@ function renderHero(cfg,silent){
 function updateOverlay(cfg){
   if(!cfg.headline&&!cfg.subHeadline&&!cfg.cta){previewOverlay.style.display='none';return;}
   previewOverlay.style.display='flex';
-  ovH.textContent=cfg.headline||'';
+  headlineSpringUpdate=heroPipeSpringText(ovH,cfg.headline||'');
   ovS.textContent=cfg.subHeadline||'';
   ovC.textContent=cfg.cta||'Get started';
   var tw={light:300,regular:400,bold:700,heavy:800,ultrawide:700};
