@@ -429,6 +429,15 @@
         <div class="step-content">
           <span class="slabel">Colour Palette</span><div class="colour-grid" id="d-colour-swatches"></div>
           <span class="slabel">Particle System</span><div class="particle-grid" id="d-particle-cards"></div>
+          <span class="slabel">Section Transition</span>
+          <select class="g-input" id="d-transition" style="cursor:pointer;">
+            <option value="dissolve">Dissolve</option>
+            <option value="bloom">Bloom</option>
+            <option value="shift">Shift</option>
+            <option value="snap">Snap</option>
+            <option value="float">Float</option>
+          </select>
+          <p class="sublabel">How the scene's colour shifts partway through the scroll.</p>
         </div>
       </div>
 
@@ -508,6 +517,17 @@
         <div class="studio-label">Entry Loader</div>
         <select class="s-select" id="s-loader" style="width:100%;margin-bottom:0.45rem;"><option value="bloom">Bloom</option><option value="fade">Fade</option><option value="wipe">Wipe</option><option value="bars">Bars</option><option value="glitch">Glitch</option></select>
         <button class="btn-prev-loader" id="s-btn-prev-loader">▶ Preview loader</button>
+      </div>
+      <div class="studio-section">
+        <div class="studio-label">Section Transition</div>
+        <select class="s-select" id="s-transition" style="width:100%;">
+          <option value="dissolve">Dissolve</option>
+          <option value="bloom">Bloom</option>
+          <option value="shift">Shift</option>
+          <option value="snap">Snap</option>
+          <option value="float">Float</option>
+        </select>
+        <p class="sublabel">How the scene's colour shifts at the scroll midpoint.</p>
       </div>
       <div class="studio-section">
         <div class="studio-label">Cursor FX</div>
@@ -600,7 +620,7 @@ var state = {
   config: {
     theme:'ai-tech',mood:'bold',energy:'balanced',
     colour:'indigo-night',particles:'nebula',camera:'drift',
-    typography:'bold',loaderStyle:'bloom',loaderDuration:1000,
+    typography:'bold',loaderStyle:'bloom',loaderDuration:1000,transition:'dissolve',
     headline:'',subHeadline:'',cta:'Get started',description:'',
   },
   generated:false, ctrl:null, apiKey:'', fullscreen:false, device:'desktop',
@@ -907,6 +927,12 @@ function buildMobileStep(n){
     body.appendChild(vs);
     Object.keys(M.colours).forEach(function(k){var sw=document.createElement('div');sw.className='colour-swatch'+(k===state.config.colour?' selected':'');sw.style.background=COLOUR_HEX[k]||'#333';sw.title=M.colours[k].label;sw.addEventListener('click',function(){cg.querySelectorAll('.colour-swatch').forEach(function(s){s.classList.remove('selected');});sw.classList.add('selected');state.config.colour=k;renderHero(state.config,true);});cg.appendChild(sw);});
     buildCards('m-particle-cards','particle',Object.keys(M.particles).map(function(k){return{key:k,html:'<div class="particle-card-name">'+M.particles[k].label+'</div>'};} ),state.config.particles,function(k){state.config.particles=k;renderHero(state.config,true);});
+    var tlab=document.createElement('div');tlab.className='slabel';tlab.style.marginTop='0.75rem';tlab.textContent='Section Transition';vs.appendChild(tlab);
+    var tsel=document.createElement('select');tsel.className='g-input';tsel.style.cursor='pointer';
+    tsel.innerHTML='<option value="dissolve">Dissolve</option><option value="bloom">Bloom</option><option value="shift">Shift</option><option value="snap">Snap</option><option value="float">Float</option>';
+    tsel.value=state.config.transition;
+    tsel.addEventListener('change',function(){state.config.transition=tsel.value;});
+    vs.appendChild(tsel);
   }
   if(n===4){
     var mot=document.createElement('div');mot.style.marginTop='0.25rem';
@@ -1004,6 +1030,9 @@ function wireDesktopGuided(){
   /* step dots */
   var dots=document.getElementById('d-step-dots');dots.innerHTML='';
   for(var i=1;i<=5;i++){var d=document.createElement('div');d.className='step-dot-d'+(i===1?' active':'');d.dataset.step=i;d.addEventListener('click',function(){desktopGoToStep(parseInt(this.dataset.step));});dots.appendChild(d);}
+  /* transition selector */
+  var dTrans=document.getElementById('d-transition');
+  if(dTrans){dTrans.value=state.config.transition;dTrans.addEventListener('change',function(){state.config.transition=dTrans.value;});}
   /* prev/next */
   document.getElementById('d-btn-prev').addEventListener('click',function(){desktopGoToStep(state.step-1);});
   /* d-btn-next click handling is owned by desktopGoToStep() via onclick — no addEventListener here to avoid double-firing */
@@ -1043,6 +1072,7 @@ function wireStudio(){
       energy:document.getElementById('s-energy').value,colour:document.getElementById('s-colour').value,
       particles:document.getElementById('s-particles').value,camera:document.getElementById('s-camera').value,
       typography:document.getElementById('s-typo').value,loaderStyle:document.getElementById('s-loader').value,
+      transition:document.getElementById('s-transition').value,
       loaderDuration:1000,headline:document.getElementById('s-headline').value,
       subHeadline:document.getElementById('s-sub').value,cta:document.getElementById('s-cta').value||'Get started',
       description:document.getElementById('s-describe').value,
