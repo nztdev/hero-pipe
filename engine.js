@@ -147,6 +147,8 @@
 
       /* transition */
       transitionDuration: tranP.duration,
+      transitionStyle:    cfg.transition || 'dissolve',
+      secondaryHue:       _hexToHue(colourP.accentHex2 || colourP.accentHex || '#8B7FFF'),
       transitionEase:     tranP.ease,
     };
   }
@@ -467,7 +469,7 @@
     scene.add(ptMain);
 
     /* ── scene state (lerp system) ── */
-    var S = { camZ: P.camStartZ, camY: 0, pOp: 0, pFocus: 0, pSwirl: 0, pPulse: 0, nebOp: 0, gridOp: 0, ptInt: 0 };
+    var S = { camZ: P.camStartZ, camY: 0, pOp: 0, pFocus: 0, pSwirl: 0, pPulse: 0, nebOp: 0, gridOp: 0, ptInt: 0, pHue: P.hue };
     var T = Object.assign({}, S);
     var lerpA = 0.035;
 
@@ -496,6 +498,18 @@
 
       /* nebula */
       T.nebOp = p > 0.15 ? Math.min(0.25, (p - 0.15) * 0.5) : 0;
+
+      /* section transition: particle hue shifts at the scroll midpoint,
+         shape of the shift depends on the chosen transition style */
+      var hueBlend = _computeHueBlend(p, P.transitionStyle, P.transitionDuration);
+      var hueDiff  = P.secondaryHue - P.hue;
+      if (hueDiff > 0.5) hueDiff -= 1;
+      if (hueDiff < -0.5) hueDiff += 1;
+      /* deliberately unwrapped: the fragment shader applies mod(hVar,1.0)
+         per-pixel, so leaving this as a continuous real number (even if
+         negative or >1) avoids a visible colour jump when the short path
+         crosses the 0/1 hue boundary. */
+      T.pHue = P.hue + hueDiff * hueBlend;
 
       /* grid */
       T.gridOp = p > 0.4 ? Math.min(0.5, (p - 0.4) * 1.2) : 0;
@@ -559,6 +573,7 @@
       camera.position.y = S.camY;
 
       mat.uniforms.uTime.value    = t;
+      mat.uniforms.uHue.value     = S.pHue;
       mat.uniforms.uOpacity.value = S.pOp * P.particleOpacity;
       mat.uniforms.uFocus.value   = S.pFocus;
       mat.uniforms.uSwirl.value   = S.pSwirl;
@@ -879,6 +894,45 @@
     var g = parseInt(hex.substr(2,2),16);
     var b = parseInt(hex.substr(4,2),16);
     return r+','+g+','+b;
+  }
+
+  /* hex to hue (0-1) for section-transition colour blending */
+  function _hexToHue(hex) {
+    hex = hex.replace('#','');
+    if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+    var r = parseInt(hex.substr(0,2),16)/255;
+    var g = parseInt(hex.substr(2,2),16)/255;
+    var b = parseInt(hex.substr(4,2),16)/255;
+    var max = Math.max(r,g,b), min = Math.min(r,g,b), h = 0;
+    if (max !== min) {
+      var d = max - min;
+      if (max === r)      h = ((g-b)/d + (g<b?6:0));
+      else if (max === g) h = (b-r)/d + 2;
+      else                 h = (r-g)/d + 4;
+      h /= 6;
+    }
+    return h;
+  }
+
+  /* returns 0-1 blend factor toward the secondary hue, shaped by style.
+     centered on the scroll midpoint except 'float' which drifts the
+     whole way through. */
+  function _computeHueBlend(p, style, duration) {
+    var center = 0.5;
+    var halfWidth = (duration || 0.8) * 0.25;
+    if (style === 'snap') return p < center ? 0 : 1;
+    if (style === 'float') return p;
+    if (style === 'shift') {
+      var hw = halfWidth * 0.4;
+      return Math.min(1, Math.max(0, (p - (center - hw)) / (2 * hw)));
+    }
+    if (style === 'bloom') {
+      var tb = Math.min(1, Math.max(0, (p - (center - halfWidth)) / (2 * halfWidth)));
+      return Math.min(1, Math.max(0, tb + Math.sin(tb * Math.PI) * 0.15 * (1 - tb)));
+    }
+    /* dissolve (default): smoothstep across the band */
+    var tt = Math.min(1, Math.max(0, (p - (center - halfWidth)) / (2 * halfWidth)));
+    return tt * tt * (3 - 2 * tt);
   }
 
   /* ── HTML escape helper ── */
