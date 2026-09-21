@@ -698,7 +698,7 @@
      Generates a standalone hero HTML file
      with the engine and config embedded.
   ══════════════════════════════════════════ */
-  function exportHero(config) {
+  function buildExportHTML(config) {
     var P  = resolve(config);
     var ac = P.accentHex;
     var ac2= P.accentHex2;
@@ -718,7 +718,7 @@
     var loaderUrl   = loaderSrc   ? loaderSrc.src   : '';
     var hoverUrl    = hoverSrc    ? hoverSrc.src    : '';
 
-    var html = [
+    return [
       '<!DOCTYPE html>',
       '<html lang="en">',
       '<head>',
@@ -881,7 +881,10 @@
       '</body>',
       '</html>',
     ].join('\n');
+  }
 
+  function exportHero(config) {
+    var html = buildExportHTML(config);
     var blob = new Blob([html], { type: 'text/html' });
     var a    = document.createElement('a');
     a.href   = URL.createObjectURL(blob);
@@ -890,6 +893,15 @@
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(a.href);
+  }
+
+  function previewExportedHero(config) {
+    var html = buildExportHTML(config);
+    var blob = new Blob([html], { type: 'text/html' });
+    var url  = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    /* intentionally not revoked immediately — the new tab needs the blob
+       to remain valid; the browser reclaims it once that tab is closed */
   }
 
   /* ── hex to rgb helper for cursor colour ── */
@@ -954,6 +966,7 @@
     render:  render,
     refine:  refine,
     export:  exportHero,
+    previewExport: previewExportedHero,
     resolve: resolve,
     stop:    stopCurrent,
     manifest: M,
