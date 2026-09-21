@@ -490,6 +490,7 @@
             <button class="btn-ai" id="d-btn-ai" disabled>Refine ✦</button>
           </div>
           <p class="sublabel">Free key at <a href="https://aistudio.google.com" target="_blank">aistudio.google.com</a></p>
+          <button class="btn-prev-loader" id="d-btn-preview-full" style="margin-top:0.9rem;">↗ Preview full page</button>
           <button class="btn-export-final" id="d-btn-export">↓ Export as HTML</button>
         </div>
       </div>
@@ -561,7 +562,7 @@
         <p class="sublabel">Free key at <a href="https://aistudio.google.com" target="_blank" style="color:var(--indigo2);">aistudio.google.com</a></p>
       </div>
       <div class="studio-section"><div class="studio-label">Config JSON</div><div id="config-display">// Config appears after generating.</div></div>
-      <div class="studio-section"><button class="btn-export-s" id="s-btn-export" disabled>↓ Export as HTML</button></div>
+      <div class="studio-section"><button class="btn-prev-loader" id="s-btn-preview-full" style="margin-bottom:0.5rem;" disabled>↗ Preview full page</button><button class="btn-export-s" id="s-btn-export" disabled>↓ Export as HTML</button></div>
     </div>
     <div id="resize-handle"></div>
     <!-- preview injected here by JS -->
@@ -740,6 +741,8 @@ function renderHero(cfg,silent){
   if(configDisp)configDisp.textContent=JSON.stringify(cfg,null,2);
   var expBtn=document.getElementById('s-btn-export');
   if(expBtn)expBtn.disabled=false;
+  var prevBtn=document.getElementById('s-btn-preview-full');
+  if(prevBtn)prevBtn.disabled=false;
 }
 
 function updateOverlay(cfg){
@@ -787,6 +790,13 @@ function exportHero(){
     setStatus('ready','Exported ↓');
     showToast('✓ Hero exported — check your downloads');
   },400);
+}
+
+function previewFullPage(){
+  if(!state.config||!window.HeroPipe||!window.HeroPipe.previewExport)return;
+  setStatus('loading','Opening full preview…');
+  window.HeroPipe.previewExport(state.config);
+  setTimeout(function(){setStatus('ready','Ready');},400);
 }
 
 function reRenderAtSize(){
@@ -984,8 +994,10 @@ function buildMobileStep(n){
     var alab=document.createElement('div');alab.className='g-input-row';alab.style.marginTop='0.75rem';
     alab.innerHTML='<label class="g-label">AI Refine (optional)</label><div class="ai-row"><input type="password" class="ai-key" id="m-api-key" placeholder="Gemini API key"/><button class="btn-ai" id="m-btn-ai" disabled>Refine ✦</button></div><p class="sublabel">Free key at <a href="https://aistudio.google.com" target="_blank">aistudio.google.com</a></p>';
     ws.appendChild(alab);
+    /* preview full page */
+    var prevBtn=document.createElement('button');prevBtn.className='btn-prev-loader';prevBtn.style.marginTop='0.5rem';prevBtn.textContent='↗ Preview full page';prevBtn.addEventListener('click',previewFullPage);ws.appendChild(prevBtn);
     /* export */
-    var exp=document.createElement('button');exp.className='btn-export-final';exp.textContent='↓ Export as HTML';exp.addEventListener('click',function(){mobileCloseSheet();exportHero();});ws.appendChild(exp);
+    var exp=document.createElement('button');exp.className='btn-export-final';exp.style.marginTop='0.6rem';exp.textContent='↓ Export as HTML';exp.addEventListener('click',function(){mobileCloseSheet();exportHero();});ws.appendChild(exp);
     body.appendChild(ws);
     /* wire inputs */
     setTimeout(function(){
@@ -1066,6 +1078,7 @@ function wireDesktopGuided(){
   wireCursorToggles('d');
   /* export */
   document.getElementById('d-btn-export').addEventListener('click',exportHero);
+  document.getElementById('d-btn-preview-full').addEventListener('click',previewFullPage);
 }
 
 /* ══ STUDIO WIRING ══ */
@@ -1098,6 +1111,7 @@ function wireStudio(){
   document.getElementById('s-api-key').addEventListener('input',function(){state.apiKey=this.value.trim();document.getElementById('s-btn-refine').disabled=!state.apiKey;});
   document.getElementById('s-btn-refine').addEventListener('click',function(){this.disabled=true;runRefine(state.apiKey,function(){document.getElementById('s-btn-refine').disabled=false;});});
   document.getElementById('s-btn-export').addEventListener('click',exportHero);
+  document.getElementById('s-btn-preview-full').addEventListener('click',previewFullPage);
   document.getElementById('s-btn-prev-loader').addEventListener('click',previewLoader);
   Array.from(document.querySelectorAll('.fx-toggle')).forEach(function(t){t.id='s-fx-'+t.id.replace('fx-','');});
   wireCursorToggles('s');
