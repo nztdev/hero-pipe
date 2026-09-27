@@ -452,6 +452,15 @@
             <option value="float">Float</option>
           </select>
           <p class="sublabel">How the scene's colour shifts partway through the scroll.</p>
+          <span class="slabel">3D Mockup</span>
+          <select class="g-input" id="d-mockup" style="cursor:pointer;">
+            <option value="none">None</option>
+            <option value="phone">Phone</option>
+            <option value="crystal">Crystal</option>
+            <option value="bottle">Bottle</option>
+            <option value="card">Card</option>
+          </select>
+          <p class="sublabel">A floating object in the scene. Optional.</p>
         </div>
       </div>
 
@@ -517,6 +526,7 @@
           <div class="s-item"><span class="s-label">Colour</span><select class="s-select" id="s-colour"><option value="indigo-night">Indigo Night</option><option value="amber-dusk">Amber Dusk</option><option value="teal-horizon">Teal Horizon</option><option value="crimson-edge">Crimson Edge</option><option value="arctic-white">Arctic White</option><option value="aurora">Aurora</option><option value="void">Void</option><option value="solar">Solar</option><option value="forest">Forest</option><option value="ocean-deep">Ocean Deep</option><option value="rose-gold">Rose Gold</option><option value="neon-city">Neon City</option><option value="monochrome">Monochrome</option><option value="ember">Ember</option><option value="cosmic">Cosmic</option></select></div>
           <div class="s-item"><span class="s-label">Particles</span><select class="s-select" id="s-particles"><option value="nebula">Nebula</option><option value="network">Network</option><option value="constellation">Constellation</option><option value="aura">Aura</option><option value="grid">Grid</option><option value="dust">Dust</option><option value="vortex">Vortex</option><option value="rain">Rain</option><option value="bloom">Bloom</option><option value="shards">Shards</option><option value="waves">Waves</option><option value="fireflies">Fireflies</option><option value="matrix">Matrix</option><option value="smoke">Smoke</option><option value="crystal">Crystal</option><option value="bioluminescent-waves">Bioluminescent Waves</option><option value="aurora-layers">Aurora Layers</option><option value="depth-parallax">Depth Parallax</option><option value="morphing-blobs">Morphing Blobs</option><option value="wormhole">Wormhole</option><option value="galaxy-spiral">Galaxy Spiral</option><option value="grid-distortion">Grid Distortion</option><option value="terrain-wave">Terrain Wave</option></select></div>
           <div class="s-item"><span class="s-label">Camera</span><select class="s-select" id="s-camera"><option value="drift">Drift</option><option value="ascend">Ascend</option><option value="orbit">Orbit</option><option value="push">Push</option><option value="pull">Pull</option><option value="sway">Sway</option><option value="spiral">Spiral</option><option value="static">Static</option><option value="breathe">Breathe</option><option value="dive">Dive</option></select></div>
+          <div class="s-item full"><span class="s-label">3D Mockup</span><select class="s-select" id="s-mockup"><option value="none">None</option><option value="phone">Phone</option><option value="crystal">Crystal</option><option value="bottle">Bottle</option><option value="card">Card</option></select></div>
           <div class="s-item full"><span class="s-label">Typography</span><select class="s-select" id="s-typo"><option value="light">Light</option><option value="regular">Regular</option><option value="bold" selected>Bold</option><option value="heavy">Heavy</option><option value="ultrawide">Ultrawide</option></select></div>
         </div>
       </div>
@@ -637,7 +647,7 @@ var state = {
   config: {
     theme:'ai-tech',mood:'bold',energy:'balanced',
     colour:'indigo-night',particles:'nebula',camera:'drift',
-    typography:'bold',loaderStyle:'bloom',loaderDuration:1000,transition:'dissolve',
+    typography:'bold',loaderStyle:'bloom',loaderDuration:1000,transition:'dissolve',mockup:'none',
     headline:'',subHeadline:'',cta:'Get started',description:'',
   },
   generated:false, ctrl:null, apiKey:'', fullscreen:false, device:'desktop',
@@ -959,6 +969,12 @@ function buildMobileStep(n){
     tsel.value=state.config.transition;
     tsel.addEventListener('change',function(){state.config.transition=tsel.value;});
     vs.appendChild(tsel);
+    var mlab=document.createElement('div');mlab.className='slabel';mlab.style.marginTop='0.75rem';mlab.textContent='3D Mockup';vs.appendChild(mlab);
+    var msel=document.createElement('select');msel.className='g-input';msel.style.cursor='pointer';
+    msel.innerHTML='<option value="none">None</option><option value="phone">Phone</option><option value="crystal">Crystal</option><option value="bottle">Bottle</option><option value="card">Card</option>';
+    msel.value=state.config.mockup;
+    msel.addEventListener('change',function(){state.config.mockup=msel.value;renderHero(state.config,true);});
+    vs.appendChild(msel);
   }
   if(n===4){
     var mot=document.createElement('div');mot.style.marginTop='0.25rem';
@@ -1061,6 +1077,9 @@ function wireDesktopGuided(){
   /* transition selector */
   var dTrans=document.getElementById('d-transition');
   if(dTrans){dTrans.value=state.config.transition;dTrans.addEventListener('change',function(){state.config.transition=dTrans.value;});}
+  /* mockup selector */
+  var dMockup=document.getElementById('d-mockup');
+  if(dMockup){dMockup.value=state.config.mockup;dMockup.addEventListener('change',function(){state.config.mockup=dMockup.value;renderHero(state.config,true);});}
   /* prev/next */
   document.getElementById('d-btn-prev').addEventListener('click',function(){desktopGoToStep(state.step-1);});
   /* d-btn-next click handling is owned by desktopGoToStep() via onclick — no addEventListener here to avoid double-firing */
@@ -1100,6 +1119,7 @@ function wireStudio(){
       theme:document.getElementById('s-theme').value,mood:document.getElementById('s-mood').value,
       energy:document.getElementById('s-energy').value,colour:document.getElementById('s-colour').value,
       particles:document.getElementById('s-particles').value,camera:document.getElementById('s-camera').value,
+      mockup:document.getElementById('s-mockup').value,
       typography:document.getElementById('s-typo').value,loaderStyle:document.getElementById('s-loader').value,
       transition:document.getElementById('s-transition').value,
       loaderDuration:1000,headline:document.getElementById('s-headline').value,
