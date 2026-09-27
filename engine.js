@@ -149,6 +149,9 @@
       transitionDuration: tranP.duration,
       transitionStyle:    cfg.transition || 'dissolve',
       secondaryHue:       _hexToHue(colourP.accentHex2 || colourP.accentHex || '#8B7FFF'),
+
+      /* 3D mockup — passed through as-is; render() reads config.mockup directly */
+      mockup: cfg.mockup || 'none',
       transitionEase:     tranP.ease,
     };
   }
@@ -468,6 +471,109 @@
     ptMain.position.set(0, 20, 10);
     scene.add(ptMain);
 
+    /* ── 3D MOCKUP ──────────────────────────────────────────
+       Procedural geometry for each shape, built directly with
+       Three.js primitives. A 'glb' branch is included but dormant
+       — the moment a mockup entry in the manifest gets a real
+       url, this same function will load it via GLTFLoader instead
+       of building a procedural shape. No engine rewrite needed. */
+    var mockupGroup = null;
+    var mockupCfg = (window.HeroPipeManifest && window.HeroPipeManifest.mockups) ? window.HeroPipeManifest.mockups[config.mockup || 'none'] : null;
+
+    function buildProceduralMockup(shape, accentHex, accentHex2) {
+      var group = new THREE.Group();
+      var accent  = new THREE.Color(accentHex);
+      var accent2 = new THREE.Color(accentHex2);
+
+      if (shape === 'phone') {
+        var bodyGeo = new THREE.BoxGeometry(3.2, 6.4, 0.35);
+        var bodyMat = new THREE.MeshStandardMaterial({ color: 0x0a0a14, metalness: 0.6, roughness: 0.25 });
+        var body = new THREE.Mesh(bodyGeo, bodyMat);
+        group.add(body);
+        var screenGeo = new THREE.PlaneGeometry(2.85, 5.9);
+        var screenMat = new THREE.MeshBasicMaterial({ color: accent, transparent: true, opacity: 0.85 });
+        var screen = new THREE.Mesh(screenGeo, screenMat);
+        screen.position.z = 0.18;
+        group.add(screen);
+        var glowGeo = new THREE.PlaneGeometry(2.85, 5.9);
+        var glowMat = new THREE.MeshBasicMaterial({ color: accent2, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending });
+        var glow = new THREE.Mesh(glowGeo, glowMat);
+        glow.position.z = 0.19;
+        group.add(glow);
+      } else if (shape === 'crystal') {
+        var gemGeo = new THREE.IcosahedronGeometry(2.4, 0);
+        var gemMat = new THREE.MeshPhysicalMaterial({
+          color: accent, metalness: 0.1, roughness: 0.05,
+          transmission: 0.6, transparent: true, opacity: 0.85,
+          clearcoat: 1, clearcoatRoughness: 0.1, emissive: accent2, emissiveIntensity: 0.15,
+        });
+        var gem = new THREE.Mesh(gemGeo, gemMat);
+        group.add(gem);
+      } else if (shape === 'bottle') {
+        var pts = [];
+        pts.push(new THREE.Vector2(0.0, -3.0));
+        pts.push(new THREE.Vector2(1.1, -3.0));
+        pts.push(new THREE.Vector2(1.15, -1.2));
+        pts.push(new THREE.Vector2(0.9, 0.5));
+        pts.push(new THREE.Vector2(0.45, 1.6));
+        pts.push(new THREE.Vector2(0.4, 2.6));
+        pts.push(new THREE.Vector2(0.0, 2.6));
+        var latheGeo = new THREE.LatheGeometry(pts, 32);
+        var latheMat = new THREE.MeshPhysicalMaterial({
+          color: accent, metalness: 0.05, roughness: 0.1,
+          transmission: 0.75, transparent: true, opacity: 0.9,
+        });
+        var bottle = new THREE.Mesh(latheGeo, latheMat);
+        group.add(bottle);
+      } else if (shape === 'card') {
+        var cardGeo = new THREE.BoxGeometry(5.4, 3.4, 0.12);
+        var cardMat = new THREE.MeshStandardMaterial({ color: 0x0d0d1a, metalness: 0.7, roughness: 0.3 });
+        var card = new THREE.Mesh(cardGeo, cardMat);
+        group.add(card);
+        var edgeGeo = new THREE.EdgesGeometry(cardGeo);
+        var edgeMat = new THREE.LineBasicMaterial({ color: accent, transparent: true, opacity: 0.7 });
+        var edges = new THREE.LineSegments(edgeGeo, edgeMat);
+        group.add(edges);
+        var stripeGeo = new THREE.PlaneGeometry(5.0, 0.7);
+        var stripeMat = new THREE.MeshBasicMaterial({ color: accent2, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending });
+        var stripe = new THREE.Mesh(stripeGeo, stripeMat);
+        stripe.position.set(0, 0.7, 0.07);
+        group.add(stripe);
+      }
+      return group;
+    }
+
+    function loadGLBMockup(url, onLoad) {
+      /* dormant path: activates automatically once a manifest mockup
+         entry has type:'glb' and a real url. Requires GLTFLoader to
+         be present on window (loaded as an additional script tag
+         alongside three.min.js when GLB mockups are introduced). */
+      if (!window.THREE || !window.THREE.GLTFLoader) {
+        console.warn('[HeroPipe] GLTFLoader not loaded — cannot load GLB mockup:', url);
+        return;
+      }
+      var loader = new THREE.GLTFLoader();
+      loader.load(url, function(gltf) {
+        onLoad(gltf.scene);
+      }, undefined, function(err) {
+        console.warn('[HeroPipe] Failed to load GLB mockup:', url, err);
+      });
+    }
+
+    if (mockupCfg && mockupCfg.type === 'procedural' && mockupCfg.params && mockupCfg.params.shape) {
+      mockupGroup = buildProceduralMockup(mockupCfg.params.shape, P.accentHex, P.accentHex2);
+      mockupGroup.position.set(16, 4, -8);
+      mockupGroup.scale.setScalar(mockupCfg.params.scale || 1.0);
+      scene.add(mockupGroup);
+    } else if (mockupCfg && mockupCfg.type === 'glb' && mockupCfg.params && mockupCfg.params.url) {
+      loadGLBMockup(mockupCfg.params.url, function(loadedScene) {
+        mockupGroup = loadedScene;
+        mockupGroup.position.set(16, 4, -8);
+        mockupGroup.scale.setScalar(mockupCfg.params.scale || 1.0);
+        scene.add(mockupGroup);
+      });
+    }
+
     /* ── scene state (lerp system) ── */
     var S = { camZ: P.camStartZ, camY: 0, pOp: 0, pFocus: 0, pSwirl: 0, pPulse: 0, nebOp: 0, gridOp: 0, ptInt: 0, pHue: P.hue };
     var T = Object.assign({}, S);
@@ -583,6 +689,24 @@
       particles.rotation.y = t * 0.022 * P.particleSpeed;
       particles.rotation.x = t * 0.007 * P.particleSpeed;
 
+      if (mockupGroup) {
+        var mp = (mockupCfg && mockupCfg.params) || {};
+        mockupGroup.rotation.y = t * (mp.rotSpeed || 0.15);
+        mockupGroup.rotation.x = Math.sin(t * (mp.floatSpeed || 0.5) * 0.3) * 0.15;
+        mockupGroup.position.y = 4 + Math.sin(t * (mp.floatSpeed || 0.5)) * 1.2;
+        /* fades in with the particle field, drifts slightly with scroll focus */
+        mockupGroup.visible = S.pOp > 0.05;
+        var mgOpacity = Math.min(1, S.pOp);
+        mockupGroup.traverse(function(child) {
+          if (child.material && child.material.opacity !== undefined && child.material.userData.baseOpacity === undefined) {
+            child.material.userData.baseOpacity = child.material.opacity;
+          }
+          if (child.material && child.material.userData.baseOpacity !== undefined) {
+            child.material.opacity = child.material.userData.baseOpacity * mgOpacity;
+          }
+        });
+      }
+
       nebMat.uniforms.uOp.value   = S.nebOp;
       nebMat.uniforms.uTime.value = t;
 
@@ -620,6 +744,14 @@
         geo.dispose();
         mat.dispose();
         nebMat.dispose();
+        if (mockupGroup) {
+          mockupGroup.traverse(function(child) {
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) child.material.dispose();
+          });
+          scene.remove(mockupGroup);
+          mockupGroup = null;
+        }
       },
       setScroll: function(p) {
         autoScrollActive = false;
