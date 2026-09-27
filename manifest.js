@@ -482,6 +482,52 @@ window.HeroPipeManifest = {
   },
 
   /* ── TYPOGRAPHY WEIGHTS ──────────────────────────────────── */
+  /* ── 3D MOCKUPS ──────────────────────────────────────────
+     type:'procedural' builds geometry directly in engine.js.
+     type:'glb' loads an external model — dormant until a url
+     is supplied here; the engine already has the loader branch
+     ready so adding a real model later needs no code changes,
+     just filling in url/scale/rotation below. ────────────── */
+  mockups: {
+    none: {
+      label: 'None',
+      description: 'No floating object. Pure particle scene.',
+      type: 'procedural',
+    },
+    phone: {
+      label: 'Phone',
+      description: 'A floating device silhouette with a glowing screen. Suits SaaS, tech, apps.',
+      type: 'procedural',
+      params: { shape: 'phone', scale: 1.0, floatSpeed: 0.6, rotSpeed: 0.15 },
+    },
+    crystal: {
+      label: 'Crystal',
+      description: 'A faceted gem catching coloured light. Suits luxury, fashion, creative.',
+      type: 'procedural',
+      params: { shape: 'crystal', scale: 1.0, floatSpeed: 0.8, rotSpeed: 0.3 },
+    },
+    bottle: {
+      label: 'Bottle',
+      description: 'A lathe-turned vessel silhouette. Suits wellness, beverage, product brands.',
+      type: 'procedural',
+      params: { shape: 'bottle', scale: 1.0, floatSpeed: 0.5, rotSpeed: 0.1 },
+    },
+    card: {
+      label: 'Card',
+      description: 'A thin beveled plane with an edge highlight. Suits finance, fintech, subscriptions.',
+      type: 'procedural',
+      params: { shape: 'card', scale: 1.0, floatSpeed: 0.7, rotSpeed: 0.2 },
+    },
+    /* ── Example of a future GLB entry (not active — no url set) ──
+    custom_product: {
+      label: 'Custom Product',
+      description: 'A user-supplied 3D model.',
+      type: 'glb',
+      params: { url: '', scale: 1.0, floatSpeed: 0.6, rotSpeed: 0.15 },
+    },
+    ────────────────────────────────────────────────────────── */
+  },
+
   typography: {
     light: {
       label: 'Light',
