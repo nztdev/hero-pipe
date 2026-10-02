@@ -152,6 +152,7 @@
 
       /* 3D mockup — passed through as-is; render() reads config.mockup directly */
       mockup: cfg.mockup || 'none',
+      mockupScale: cfg.mockupScale !== undefined ? cfg.mockupScale : 1.6,
       transitionEase:     tranP.ease,
     };
   }
@@ -479,6 +480,7 @@
        of building a procedural shape. No engine rewrite needed. */
     var mockupGroup = null;
     var mockupCfg = (window.HeroPipeManifest && window.HeroPipeManifest.mockups) ? window.HeroPipeManifest.mockups[config.mockup || 'none'] : null;
+    var userMockupScale = config.mockupScale !== undefined ? config.mockupScale : 1.6;
 
     function buildProceduralMockup(shape, accentHex, accentHex2) {
       var group = new THREE.Group();
@@ -563,13 +565,13 @@
     if (mockupCfg && mockupCfg.type === 'procedural' && mockupCfg.params && mockupCfg.params.shape) {
       mockupGroup = buildProceduralMockup(mockupCfg.params.shape, P.accentHex, P.accentHex2);
       mockupGroup.position.set(16, 4, -8);
-      mockupGroup.scale.setScalar(mockupCfg.params.scale || 1.0);
+      mockupGroup.scale.setScalar((mockupCfg.params.scale || 1.0) * userMockupScale);
       scene.add(mockupGroup);
     } else if (mockupCfg && mockupCfg.type === 'glb' && mockupCfg.params && mockupCfg.params.url) {
       loadGLBMockup(mockupCfg.params.url, function(loadedScene) {
         mockupGroup = loadedScene;
         mockupGroup.position.set(16, 4, -8);
-        mockupGroup.scale.setScalar(mockupCfg.params.scale || 1.0);
+        mockupGroup.scale.setScalar((mockupCfg.params.scale || 1.0) * userMockupScale);
         scene.add(mockupGroup);
       });
     }
@@ -758,6 +760,12 @@
         updateFromScroll(Math.max(0, Math.min(1, p)));
       },
       getScroll: function() { return autoScrollP; },
+      setMockupScale: function(v) {
+        userMockupScale = v;
+        if (mockupGroup && mockupCfg && mockupCfg.params) {
+          mockupGroup.scale.setScalar((mockupCfg.params.scale || 1.0) * v);
+        }
+      },
       enableAutoScroll: function(v) { autoScrollActive = v !== false; },
       getResolved: function() { return P; },
     };
