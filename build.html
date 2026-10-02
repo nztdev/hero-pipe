@@ -461,6 +461,8 @@
             <option value="card">Card</option>
           </select>
           <p class="sublabel">A floating object in the scene. Optional.</p>
+          <span class="slabel">Mockup Size</span>
+          <input type="range" id="d-mockup-scale" min="0.5" max="3" step="0.1" value="1.6" style="width:100%;accent-color:var(--indigo);"/>
         </div>
       </div>
 
@@ -527,6 +529,7 @@
           <div class="s-item"><span class="s-label">Particles</span><select class="s-select" id="s-particles"><option value="nebula">Nebula</option><option value="network">Network</option><option value="constellation">Constellation</option><option value="aura">Aura</option><option value="grid">Grid</option><option value="dust">Dust</option><option value="vortex">Vortex</option><option value="rain">Rain</option><option value="bloom">Bloom</option><option value="shards">Shards</option><option value="waves">Waves</option><option value="fireflies">Fireflies</option><option value="matrix">Matrix</option><option value="smoke">Smoke</option><option value="crystal">Crystal</option><option value="bioluminescent-waves">Bioluminescent Waves</option><option value="aurora-layers">Aurora Layers</option><option value="depth-parallax">Depth Parallax</option><option value="morphing-blobs">Morphing Blobs</option><option value="wormhole">Wormhole</option><option value="galaxy-spiral">Galaxy Spiral</option><option value="grid-distortion">Grid Distortion</option><option value="terrain-wave">Terrain Wave</option></select></div>
           <div class="s-item"><span class="s-label">Camera</span><select class="s-select" id="s-camera"><option value="drift">Drift</option><option value="ascend">Ascend</option><option value="orbit">Orbit</option><option value="push">Push</option><option value="pull">Pull</option><option value="sway">Sway</option><option value="spiral">Spiral</option><option value="static">Static</option><option value="breathe">Breathe</option><option value="dive">Dive</option></select></div>
           <div class="s-item full"><span class="s-label">3D Mockup</span><select class="s-select" id="s-mockup"><option value="none">None</option><option value="phone">Phone</option><option value="crystal">Crystal</option><option value="bottle">Bottle</option><option value="card">Card</option></select></div>
+          <div class="s-item full"><span class="s-label">Mockup Size</span><input type="range" id="s-mockup-scale" min="0.5" max="3" step="0.1" value="1.6" style="width:100%;accent-color:var(--indigo);"/></div>
           <div class="s-item full"><span class="s-label">Typography</span><select class="s-select" id="s-typo"><option value="light">Light</option><option value="regular">Regular</option><option value="bold" selected>Bold</option><option value="heavy">Heavy</option><option value="ultrawide">Ultrawide</option></select></div>
         </div>
       </div>
@@ -647,7 +650,7 @@ var state = {
   config: {
     theme:'ai-tech',mood:'bold',energy:'balanced',
     colour:'indigo-night',particles:'nebula',camera:'drift',
-    typography:'bold',loaderStyle:'bloom',loaderDuration:1000,transition:'dissolve',mockup:'none',
+    typography:'bold',loaderStyle:'bloom',loaderDuration:1000,transition:'dissolve',mockup:'none',mockupScale:1.6,
     headline:'',subHeadline:'',cta:'Get started',description:'',
   },
   generated:false, ctrl:null, apiKey:'', fullscreen:false, device:'desktop',
@@ -975,6 +978,14 @@ function buildMobileStep(n){
     msel.value=state.config.mockup;
     msel.addEventListener('change',function(){state.config.mockup=msel.value;renderHero(state.config,true);});
     vs.appendChild(msel);
+    var mslab=document.createElement('div');mslab.className='slabel';mslab.style.marginTop='0.75rem';mslab.textContent='Mockup Size';vs.appendChild(mslab);
+    var mslider=document.createElement('input');mslider.type='range';mslider.min='0.5';mslider.max='3';mslider.step='0.1';mslider.value=state.config.mockupScale;mslider.style.cssText='width:100%;accent-color:var(--indigo);';
+    mslider.addEventListener('input',function(){
+      var v=parseFloat(mslider.value);
+      state.config.mockupScale=v;
+      if(state.ctrl&&state.ctrl.setMockupScale)state.ctrl.setMockupScale(v);
+    });
+    vs.appendChild(mslider);
   }
   if(n===4){
     var mot=document.createElement('div');mot.style.marginTop='0.25rem';
@@ -1080,6 +1091,12 @@ function wireDesktopGuided(){
   /* mockup selector */
   var dMockup=document.getElementById('d-mockup');
   if(dMockup){dMockup.value=state.config.mockup;dMockup.addEventListener('change',function(){state.config.mockup=dMockup.value;renderHero(state.config,true);});}
+  var dMockupScale=document.getElementById('d-mockup-scale');
+  if(dMockupScale){dMockupScale.value=state.config.mockupScale;dMockupScale.addEventListener('input',function(){
+    var v=parseFloat(dMockupScale.value);
+    state.config.mockupScale=v;
+    if(state.ctrl&&state.ctrl.setMockupScale)state.ctrl.setMockupScale(v);
+  });}
   /* prev/next */
   document.getElementById('d-btn-prev').addEventListener('click',function(){desktopGoToStep(state.step-1);});
   /* d-btn-next click handling is owned by desktopGoToStep() via onclick — no addEventListener here to avoid double-firing */
@@ -1120,6 +1137,7 @@ function wireStudio(){
       energy:document.getElementById('s-energy').value,colour:document.getElementById('s-colour').value,
       particles:document.getElementById('s-particles').value,camera:document.getElementById('s-camera').value,
       mockup:document.getElementById('s-mockup').value,
+      mockupScale:parseFloat(document.getElementById('s-mockup-scale').value),
       typography:document.getElementById('s-typo').value,loaderStyle:document.getElementById('s-loader').value,
       transition:document.getElementById('s-transition').value,
       loaderDuration:1000,headline:document.getElementById('s-headline').value,
@@ -1135,6 +1153,12 @@ function wireStudio(){
   document.getElementById('s-btn-prev-loader').addEventListener('click',previewLoader);
   Array.from(document.querySelectorAll('.fx-toggle')).forEach(function(t){t.id='s-fx-'+t.id.replace('fx-','');});
   wireCursorToggles('s');
+  var sMockupScale=document.getElementById('s-mockup-scale');
+  if(sMockupScale){sMockupScale.addEventListener('input',function(){
+    var v=parseFloat(sMockupScale.value);
+    state.config.mockupScale=v;
+    if(state.ctrl&&state.ctrl.setMockupScale)state.ctrl.setMockupScale(v);
+  });}
   /* resize */
   var handle=document.getElementById('resize-handle'),sp=document.getElementById('studio-panel'),dragging=false,sx,sw;
   handle.addEventListener('mousedown',function(e){dragging=true;sx=e.clientX;sw=sp.offsetWidth;document.body.style.cursor='col-resize';document.body.style.userSelect='none';});
