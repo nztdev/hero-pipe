@@ -404,7 +404,7 @@
     <button class="mode-btn active" id="btn-guided-mode">Guided</button>
     <button class="mode-btn" id="btn-studio-mode">Studio</button>
   </div>
-  <a href="index.html" class="nav-back">← Back</a>
+  <div style="display:flex;align-items:center;gap:1rem;"><button id="btn-reset" class="nav-back" style="background:none;border:none;cursor:pointer;font-family:inherit;" title="Clear saved session and start fresh">Reset</button><a href="index.html" class="nav-back">← Back</a></div>
 </nav>
 
 <div id="app">
@@ -1195,9 +1195,69 @@ function buildMobileDots(){
 }
 
 /* ══ INIT ══ */
+/* ══════════════════════════════════════════
+   SAVE / LOAD — localStorage persistence
+══════════════════════════════════════════ */
+var SAVE_KEY = 'heropipe_last_config';
+
+var isResetting = false;
+function saveConfigToStorage() {
+  if (isResetting) return; /* don't re-save right after a reset click */
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(state.config));
+  } catch(e) { /* storage unavailable or full — fail silently */ }
+}
+
+function loadConfigFromStorage() {
+  try {
+    var raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch(e) { return null; }
+}
+
+function clearSavedConfig() {
+  try { localStorage.removeItem(SAVE_KEY); } catch(e) {}
+}
+
+/* Push a restored config into every control surface so Studio,
+   Desktop Guided and Mobile Guided all reflect it immediately. */
+function applyConfigToUI(cfg) {
+  state.config = Object.assign({}, state.config, cfg);
+
+  var fieldMap = {
+    's-theme':'theme','s-mood':'mood','s-energy':'energy','s-colour':'colour',
+    's-particles':'particles','s-camera':'camera','s-typo':'typography',
+    's-loader':'loaderStyle','s-transition':'transition','s-mockup':'mockup',
+    's-headline':'headline','s-sub':'subHeadline','s-cta':'cta','s-describe':'description',
+    'd-transition':'transition','d-mockup':'mockup',
+    'd-headline':'headline','d-sub':'subHeadline','d-cta':'cta','d-describe':'description',
+  };
+  Object.keys(fieldMap).forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el && state.config[fieldMap[id]] !== undefined) el.value = state.config[fieldMap[id]];
+  });
+  var sScale = document.getElementById('s-mockup-scale');
+  if (sScale && state.config.mockupScale !== undefined) sScale.value = state.config.mockupScale;
+  var dScale = document.getElementById('d-mockup-scale');
+  if (dScale && state.config.mockupScale !== undefined) dScale.value = state.config.mockupScale;
+
+  /* re-sync the visual card grids (theme/mood/colour/particle/camera/loader) */
+  if (M) buildAllCards('d');
+}
+
 window.addEventListener('load',function(){
   M=window.HeroPipeManifest;
   isMobile=window.innerWidth<=768;
+
+  /* restore last session BEFORE any UI is built, so every surface
+     (cards, dropdowns, mobile sheet) starts from the saved state */
+  var savedCfg = loadConfigFromStorage();
+  var restored = false;
+  if (savedCfg) {
+    state.config = Object.assign({}, state.config, savedCfg);
+    restored = true;
+  }
 
   if(!isMobile){
     buildAllCards('d');
@@ -1211,9 +1271,33 @@ window.addEventListener('load',function(){
   }
 
   wireStudio();
+  /* push restored values into Studio's static form fields too */
+  if (restored) applyConfigToUI(state.config);
   setStatus('','Ready');
-  setTimeout(function(){renderHero(state.config,true);},300);
+  setTimeout(function(){
+    renderHero(state.config,true);
+    if (restored) showToast('Restored your last session');
+  },300);
   updatePreviewSize();
+
+  /* auto-save: one delegated listener covers every control in every
+     mode, debounced so rapid typing/slider drags don't thrash storage */
+  var saveTimer = null;
+  function scheduleSave(){
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveConfigToStorage, 400);
+  }
+  ['input','change','click'].forEach(function(evt){
+    document.addEventListener(evt, scheduleSave, true);
+  });
+
+  /* reset button */
+  var resetBtn = document.getElementById('btn-reset');
+  if (resetBtn) resetBtn.addEventListener('click', function(){
+    isResetting = true;
+    clearSavedConfig();
+    location.reload();
+  });
 });
 </script>
 </body>
