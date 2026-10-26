@@ -150,9 +150,9 @@
       transitionStyle:    cfg.transition || 'dissolve',
       secondaryHue:       _hexToHue(colourP.accentHex2 || colourP.accentHex || '#8B7FFF'),
 
-      /* 3D mockup — passed through as-is; render() reads config.mockup directly */
-      mockup: cfg.mockup || 'none',
-      mockupScale: cfg.mockupScale !== undefined ? cfg.mockupScale : 1.6,
+      /* 3D mockups: normalised list of up to 3 slots {type, scale, x, y}.
+         Also accepts the legacy single mockup/mockupScale fields. */
+      mockups: _normalizeMockups(cfg),
       transitionEase:     tranP.ease,
     };
   }
@@ -478,9 +478,8 @@
        — the moment a mockup entry in the manifest gets a real
        url, this same function will load it via GLTFLoader instead
        of building a procedural shape. No engine rewrite needed. */
-    var mockupGroup = null;
-    var mockupCfg = (window.HeroPipeManifest && window.HeroPipeManifest.mockups) ? window.HeroPipeManifest.mockups[config.mockup || 'none'] : null;
-    var userMockupScale = config.mockupScale !== undefined ? config.mockupScale : 1.6;
+    var mockups = []; /* one entry per active slot: {cfg, scale, x, y, phase, group} */
+    var MK = (window.HeroPipeManifest && window.HeroPipeManifest.mockups) || {};
 
     function buildProceduralMockup(shape, accentHex, accentHex2) {
       var group = new THREE.Group();
@@ -524,6 +523,7 @@
         var latheMat = new THREE.MeshPhysicalMaterial({
           color: accent, metalness: 0.05, roughness: 0.1,
           transmission: 0.75, transparent: true, opacity: 0.9,
+          emissive: accent, emissiveIntensity: 0.3,
         });
         var bottle = new THREE.Mesh(latheGeo, latheMat);
         group.add(bottle);
@@ -562,18 +562,32 @@
       });
     }
 
-    if (mockupCfg && mockupCfg.type === 'procedural' && mockupCfg.params && mockupCfg.params.shape) {
-      mockupGroup = buildProceduralMockup(mockupCfg.params.shape, P.accentHex, P.accentHex2);
-      mockupGroup.position.set(16, 4, -8);
-      mockupGroup.scale.setScalar((mockupCfg.params.scale || 1.0) * userMockupScale);
-      scene.add(mockupGroup);
-    } else if (mockupCfg && mockupCfg.type === 'glb' && mockupCfg.params && mockupCfg.params.url) {
-      loadGLBMockup(mockupCfg.params.url, function(loadedScene) {
-        mockupGroup = loadedScene;
-        mockupGroup.position.set(16, 4, -8);
-        mockupGroup.scale.setScalar((mockupCfg.params.scale || 1.0) * userMockupScale);
-        scene.add(mockupGroup);
-      });
+    _normalizeMockups(config).forEach(function(item, idx) {
+      var mcfg = MK[item.type];
+      var entry = { cfg: mcfg, scale: item.scale, x: item.x, y: item.y, phase: idx * 1.7, group: null };
+      mockups.push(entry); /* always pushed so slot indexes stay aligned with the UI */
+      if (!mcfg || !mcfg.params) return;
+      function place(g) {
+        entry.group = g;
+        g.position.set(0, 0, -8); /* x/y applied each frame from screen-relative values */
+        g.scale.setScalar((mcfg.params.scale || 1.0) * entry.scale);
+        scene.add(g);
+      }
+      if (mcfg.type === 'procedural' && mcfg.params.shape) {
+        place(buildProceduralMockup(mcfg.params.shape, P.accentHex, P.accentHex2));
+      } else if (mcfg.type === 'glb' && mcfg.params.url) {
+        loadGLBMockup(mcfg.params.url, place);
+      }
+    });
+    if (mockups.length) {
+      /* mockups get their own key + rim light so they read clearly on the
+         dark scene regardless of scroll position */
+      var mkKey = new THREE.DirectionalLight(0xffffff, 1.1);
+      mkKey.position.set(6, 10, 12);
+      scene.add(mkKey);
+      var mkRim = new THREE.PointLight(new THREE.Color(P.accentHex2), 1.6, 120);
+      mkRim.position.set(-14, -6, 8);
+      scene.add(mkRim);
     }
 
     /* ── scene state (lerp system) ── */
@@ -691,15 +705,25 @@
       particles.rotation.y = t * 0.022 * P.particleSpeed;
       particles.rotation.x = t * 0.007 * P.particleSpeed;
 
-      if (mockupGroup) {
-        var mp = (mockupCfg && mockupCfg.params) || {};
-        mockupGroup.rotation.y = t * (mp.rotSpeed || 0.15);
-        mockupGroup.rotation.x = Math.sin(t * (mp.floatSpeed || 0.5) * 0.3) * 0.15;
-        mockupGroup.position.y = 4 + Math.sin(t * (mp.floatSpeed || 0.5)) * 1.2;
-        /* fades in with the particle field, drifts slightly with scroll focus */
-        mockupGroup.visible = S.pOp > 0.05;
+      mockups.forEach(function(mk) {
+        if (!mk.group) return;
+        var mp = (mk.cfg && mk.cfg.params) || {};
+        var g = mk.group;
+        /* phase offsets keep multiple mockups from moving in lockstep */
+        g.rotation.y = t * (mp.rotSpeed || 0.15) + mk.phase;
+        g.rotation.x = Math.sin(t * (mp.floatSpeed || 0.5) * 0.3 + mk.phase) * 0.15;
+        /* screen-relative placement: convert % of the visible area at the
+           mockup's depth into world units, so a position means the same
+           thing on desktop, phone and every camera path */
+        var mkDist = Math.max(5, camera.position.z + 8);
+        var mkHalfH = Math.tan(camera.fov * Math.PI / 360) * mkDist;
+        var mkHalfW = mkHalfH * camera.aspect;
+        g.position.x = (mk.x / 100) * mkHalfW;
+        g.position.y = (mk.y / 100) * mkHalfH + Math.sin(t * (mp.floatSpeed || 0.5) + mk.phase) * 1.2;
+        /* fades in with the particle field */
+        g.visible = S.pOp > 0.05;
         var mgOpacity = Math.min(1, S.pOp);
-        mockupGroup.traverse(function(child) {
+        g.traverse(function(child) {
           if (child.material && child.material.opacity !== undefined && child.material.userData.baseOpacity === undefined) {
             child.material.userData.baseOpacity = child.material.opacity;
           }
@@ -707,7 +731,7 @@
             child.material.opacity = child.material.userData.baseOpacity * mgOpacity;
           }
         });
-      }
+      });
 
       nebMat.uniforms.uOp.value   = S.nebOp;
       nebMat.uniforms.uTime.value = t;
@@ -746,25 +770,30 @@
         geo.dispose();
         mat.dispose();
         nebMat.dispose();
-        if (mockupGroup) {
-          mockupGroup.traverse(function(child) {
+        mockups.forEach(function(mk) {
+          if (!mk.group) return;
+          mk.group.traverse(function(child) {
             if (child.geometry) child.geometry.dispose();
             if (child.material) child.material.dispose();
           });
-          scene.remove(mockupGroup);
-          mockupGroup = null;
-        }
+          scene.remove(mk.group);
+          mk.group = null;
+        });
+        mockups = [];
       },
       setScroll: function(p) {
         autoScrollActive = false;
         updateFromScroll(Math.max(0, Math.min(1, p)));
       },
       getScroll: function() { return autoScrollP; },
-      setMockupScale: function(v) {
-        userMockupScale = v;
-        if (mockupGroup && mockupCfg && mockupCfg.params) {
-          mockupGroup.scale.setScalar((mockupCfg.params.scale || 1.0) * v);
-        }
+      /* live-adjust one mockup slot without rebuilding the scene */
+      setMockupTransform: function(i, props) {
+        var mk = mockups[i];
+        if (!mk || !props) return;
+        if (props.scale !== undefined) mk.scale = props.scale;
+        if (props.x !== undefined) mk.x = props.x;
+        if (props.y !== undefined) mk.y = props.y;
+        if (mk.group && mk.cfg && mk.cfg.params) mk.group.scale.setScalar((mk.cfg.params.scale || 1.0) * mk.scale);
       },
       enableAutoScroll: function(v) { autoScrollActive = v !== false; },
       getResolved: function() { return P; },
@@ -1052,6 +1081,35 @@
     var g = parseInt(hex.substr(2,2),16);
     var b = parseInt(hex.substr(4,2),16);
     return r+','+g+','+b;
+  }
+
+  /* ── mockup slot normaliser ──
+     Accepts config.mockups (array) or the legacy single
+     config.mockup + config.mockupScale, returns at most 3 valid
+     {type, scale, x, y} entries with default positions filled in. */
+  /* x/y are % of the visible half-width/half-height: 100 = screen edge */
+  var _MOCKUP_DEFAULT_SLOTS = [ { x: 62, y: 12 }, { x: -62, y: 12 }, { x: 0, y: -52 } ];
+  function _normalizeMockups(cfg) {
+    var Mk = (window.HeroPipeManifest && window.HeroPipeManifest.mockups) || {};
+    var list = [];
+    if (Array.isArray(cfg.mockups)) {
+      list = cfg.mockups;
+    } else if (cfg.mockup && cfg.mockup !== 'none') {
+      list = [{ type: cfg.mockup, scale: cfg.mockupScale }];
+    }
+    var out = [];
+    for (var i = 0; i < list.length && out.length < 3; i++) {
+      var m = list[i];
+      if (!m || !m.type || m.type === 'none' || !Mk[m.type]) continue;
+      var slot = _MOCKUP_DEFAULT_SLOTS[out.length];
+      out.push({
+        type:  m.type,
+        scale: m.scale !== undefined ? m.scale : 1.6,
+        x:     m.x !== undefined ? m.x : slot.x,
+        y:     m.y !== undefined ? m.y : slot.y,
+      });
+    }
+    return out;
   }
 
   /* hex to hue (0-1) for section-transition colour blending */
