@@ -393,6 +393,17 @@
     .fx-row span{font-size:0.76rem;color:var(--white);}
     #config-display{background:var(--black);border-radius:6px;padding:0.7rem;font-family:monospace;font-size:0.65rem;line-height:1.55;color:var(--muted);max-height:140px;overflow-y:auto;white-space:pre;border:1px solid var(--border2);}
 
+    /* mockup editor */
+    .mockup-slot{background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:0.75rem;margin-bottom:0.6rem;display:flex;flex-direction:column;gap:0.55rem;}
+    .mk-head{display:flex;align-items:center;justify-content:space-between;}
+    .mk-title{font-family:'Syne',sans-serif;font-size:0.75rem;font-weight:700;color:var(--white);letter-spacing:0.04em;}
+    .btn-mini{background:transparent;border:1px solid var(--border2);color:var(--muted);border-radius:6px;padding:0.25rem 0.6rem;font-size:0.68rem;cursor:pointer;transition:color 0.2s,border-color 0.2s;}
+    .btn-mini:hover{color:#f87171;border-color:rgba(248,113,113,0.4);}
+    .mk-row-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:0.2rem;}
+    .mk-label{font-size:0.6rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);}
+    .mk-val{font-size:0.66rem;color:var(--indigo2);font-family:monospace;}
+    .mk-row input[type=range]{width:100%;accent-color:var(--indigo);}
+
     @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.001ms!important;transition-duration:0.001ms!important;}}
   </style>
 </head>
@@ -452,17 +463,8 @@
             <option value="float">Float</option>
           </select>
           <p class="sublabel">How the scene's colour shifts partway through the scroll.</p>
-          <span class="slabel">3D Mockup</span>
-          <select class="g-input" id="d-mockup" style="cursor:pointer;">
-            <option value="none">None</option>
-            <option value="phone">Phone</option>
-            <option value="crystal">Crystal</option>
-            <option value="bottle">Bottle</option>
-            <option value="card">Card</option>
-          </select>
-          <p class="sublabel">A floating object in the scene. Optional.</p>
-          <span class="slabel">Mockup Size</span>
-          <input type="range" id="d-mockup-scale" min="0.5" max="3" step="0.1" value="1.6" style="width:100%;accent-color:var(--indigo);"/>
+          <span class="slabel">3D Mockups</span>
+          <div id="d-mockup-editor"></div>
         </div>
       </div>
 
@@ -528,8 +530,7 @@
           <div class="s-item"><span class="s-label">Colour</span><select class="s-select" id="s-colour"><option value="indigo-night">Indigo Night</option><option value="amber-dusk">Amber Dusk</option><option value="teal-horizon">Teal Horizon</option><option value="crimson-edge">Crimson Edge</option><option value="arctic-white">Arctic White</option><option value="aurora">Aurora</option><option value="void">Void</option><option value="solar">Solar</option><option value="forest">Forest</option><option value="ocean-deep">Ocean Deep</option><option value="rose-gold">Rose Gold</option><option value="neon-city">Neon City</option><option value="monochrome">Monochrome</option><option value="ember">Ember</option><option value="cosmic">Cosmic</option></select></div>
           <div class="s-item"><span class="s-label">Particles</span><select class="s-select" id="s-particles"><option value="nebula">Nebula</option><option value="network">Network</option><option value="constellation">Constellation</option><option value="aura">Aura</option><option value="grid">Grid</option><option value="dust">Dust</option><option value="vortex">Vortex</option><option value="rain">Rain</option><option value="bloom">Bloom</option><option value="shards">Shards</option><option value="waves">Waves</option><option value="fireflies">Fireflies</option><option value="matrix">Matrix</option><option value="smoke">Smoke</option><option value="crystal">Crystal</option><option value="bioluminescent-waves">Bioluminescent Waves</option><option value="aurora-layers">Aurora Layers</option><option value="depth-parallax">Depth Parallax</option><option value="morphing-blobs">Morphing Blobs</option><option value="wormhole">Wormhole</option><option value="galaxy-spiral">Galaxy Spiral</option><option value="grid-distortion">Grid Distortion</option><option value="terrain-wave">Terrain Wave</option></select></div>
           <div class="s-item"><span class="s-label">Camera</span><select class="s-select" id="s-camera"><option value="drift">Drift</option><option value="ascend">Ascend</option><option value="orbit">Orbit</option><option value="push">Push</option><option value="pull">Pull</option><option value="sway">Sway</option><option value="spiral">Spiral</option><option value="static">Static</option><option value="breathe">Breathe</option><option value="dive">Dive</option></select></div>
-          <div class="s-item full"><span class="s-label">3D Mockup</span><select class="s-select" id="s-mockup"><option value="none">None</option><option value="phone">Phone</option><option value="crystal">Crystal</option><option value="bottle">Bottle</option><option value="card">Card</option></select></div>
-          <div class="s-item full"><span class="s-label">Mockup Size</span><input type="range" id="s-mockup-scale" min="0.5" max="3" step="0.1" value="1.6" style="width:100%;accent-color:var(--indigo);"/></div>
+          <div class="s-item full"><span class="s-label">3D Mockups</span><div id="s-mockup-editor"></div></div>
           <div class="s-item full"><span class="s-label">Typography</span><select class="s-select" id="s-typo"><option value="light">Light</option><option value="regular">Regular</option><option value="bold" selected>Bold</option><option value="heavy">Heavy</option><option value="ultrawide">Ultrawide</option></select></div>
         </div>
       </div>
@@ -650,7 +651,7 @@ var state = {
   config: {
     theme:'ai-tech',mood:'bold',energy:'balanced',
     colour:'indigo-night',particles:'nebula',camera:'drift',
-    typography:'bold',loaderStyle:'bloom',loaderDuration:1000,transition:'dissolve',mockup:'none',mockupScale:1.6,
+    typography:'bold',loaderStyle:'bloom',loaderDuration:1000,transition:'dissolve',mockups:[],
     headline:'',subHeadline:'',cta:'Get started',description:'',
   },
   generated:false, ctrl:null, apiKey:'', fullscreen:false, device:'desktop',
@@ -972,20 +973,9 @@ function buildMobileStep(n){
     tsel.value=state.config.transition;
     tsel.addEventListener('change',function(){state.config.transition=tsel.value;});
     vs.appendChild(tsel);
-    var mlab=document.createElement('div');mlab.className='slabel';mlab.style.marginTop='0.75rem';mlab.textContent='3D Mockup';vs.appendChild(mlab);
-    var msel=document.createElement('select');msel.className='g-input';msel.style.cursor='pointer';
-    msel.innerHTML='<option value="none">None</option><option value="phone">Phone</option><option value="crystal">Crystal</option><option value="bottle">Bottle</option><option value="card">Card</option>';
-    msel.value=state.config.mockup;
-    msel.addEventListener('change',function(){state.config.mockup=msel.value;renderHero(state.config,true);});
-    vs.appendChild(msel);
-    var mslab=document.createElement('div');mslab.className='slabel';mslab.style.marginTop='0.75rem';mslab.textContent='Mockup Size';vs.appendChild(mslab);
-    var mslider=document.createElement('input');mslider.type='range';mslider.min='0.5';mslider.max='3';mslider.step='0.1';mslider.value=state.config.mockupScale;mslider.style.cssText='width:100%;accent-color:var(--indigo);';
-    mslider.addEventListener('input',function(){
-      var v=parseFloat(mslider.value);
-      state.config.mockupScale=v;
-      if(state.ctrl&&state.ctrl.setMockupScale)state.ctrl.setMockupScale(v);
-    });
-    vs.appendChild(mslider);
+    var mlab=document.createElement('div');mlab.className='slabel';mlab.style.marginTop='0.75rem';mlab.textContent='3D Mockups';vs.appendChild(mlab);
+    var mbox=document.createElement('div');mbox.id='m-mockup-editor';vs.appendChild(mbox);
+    renderMockupEditor(mbox);
   }
   if(n===4){
     var mot=document.createElement('div');mot.style.marginTop='0.25rem';
@@ -1089,14 +1079,7 @@ function wireDesktopGuided(){
   var dTrans=document.getElementById('d-transition');
   if(dTrans){dTrans.value=state.config.transition;dTrans.addEventListener('change',function(){state.config.transition=dTrans.value;});}
   /* mockup selector */
-  var dMockup=document.getElementById('d-mockup');
-  if(dMockup){dMockup.value=state.config.mockup;dMockup.addEventListener('change',function(){state.config.mockup=dMockup.value;renderHero(state.config,true);});}
-  var dMockupScale=document.getElementById('d-mockup-scale');
-  if(dMockupScale){dMockupScale.value=state.config.mockupScale;dMockupScale.addEventListener('input',function(){
-    var v=parseFloat(dMockupScale.value);
-    state.config.mockupScale=v;
-    if(state.ctrl&&state.ctrl.setMockupScale)state.ctrl.setMockupScale(v);
-  });}
+  /* mockup editor is rendered by refreshMockupEditors() */
   /* prev/next */
   document.getElementById('d-btn-prev').addEventListener('click',function(){desktopGoToStep(state.step-1);});
   /* d-btn-next click handling is owned by desktopGoToStep() via onclick — no addEventListener here to avoid double-firing */
@@ -1136,8 +1119,7 @@ function wireStudio(){
       theme:document.getElementById('s-theme').value,mood:document.getElementById('s-mood').value,
       energy:document.getElementById('s-energy').value,colour:document.getElementById('s-colour').value,
       particles:document.getElementById('s-particles').value,camera:document.getElementById('s-camera').value,
-      mockup:document.getElementById('s-mockup').value,
-      mockupScale:parseFloat(document.getElementById('s-mockup-scale').value),
+      mockups:state.config.mockups||[],
       typography:document.getElementById('s-typo').value,loaderStyle:document.getElementById('s-loader').value,
       transition:document.getElementById('s-transition').value,
       loaderDuration:1000,headline:document.getElementById('s-headline').value,
@@ -1153,12 +1135,7 @@ function wireStudio(){
   document.getElementById('s-btn-prev-loader').addEventListener('click',previewLoader);
   Array.from(document.querySelectorAll('.fx-toggle')).forEach(function(t){t.id='s-fx-'+t.id.replace('fx-','');});
   wireCursorToggles('s');
-  var sMockupScale=document.getElementById('s-mockup-scale');
-  if(sMockupScale){sMockupScale.addEventListener('input',function(){
-    var v=parseFloat(sMockupScale.value);
-    state.config.mockupScale=v;
-    if(state.ctrl&&state.ctrl.setMockupScale)state.ctrl.setMockupScale(v);
-  });}
+
   /* resize */
   var handle=document.getElementById('resize-handle'),sp=document.getElementById('studio-panel'),dragging=false,sx,sw;
   handle.addEventListener('mousedown',function(e){dragging=true;sx=e.clientX;sw=sp.offsetWidth;document.body.style.cursor='col-resize';document.body.style.userSelect='none';});
@@ -1198,6 +1175,102 @@ function buildMobileDots(){
 /* ══════════════════════════════════════════
    SAVE / LOAD — localStorage persistence
 ══════════════════════════════════════════ */
+/* ══════════════════════════════════════════
+   MOCKUP EDITOR — up to 3 floating objects, each with its own
+   shape, size and position. One shared builder feeds Studio,
+   Desktop Guided and the Mobile sheet.
+══════════════════════════════════════════ */
+var MAX_MOCKUPS = 3;
+/* x/y are % of the visible half-width/half-height (100 = screen edge) */
+var MOCKUP_DEFAULT_SLOTS = [{x:62,y:12},{x:-62,y:12},{x:0,y:-52}];
+var MOCKUP_EDITOR_IDS = ['s-mockup-editor','d-mockup-editor','m-mockup-editor'];
+
+/* older saved sessions stored one mockup + one scale; convert them */
+function migrateLegacyMockup(cfg){
+  if(!cfg||Array.isArray(cfg.mockups))return cfg;
+  if(cfg.mockup&&cfg.mockup!=='none'){
+    cfg.mockups=[{type:cfg.mockup,scale:cfg.mockupScale!==undefined?cfg.mockupScale:1.6,x:MOCKUP_DEFAULT_SLOTS[0].x,y:MOCKUP_DEFAULT_SLOTS[0].y}];
+  }
+  delete cfg.mockup;delete cfg.mockupScale;
+  return cfg;
+}
+
+function refreshMockupEditors(){
+  MOCKUP_EDITOR_IDS.forEach(function(id){
+    var el=document.getElementById(id);
+    if(el)renderMockupEditor(el);
+  });
+}
+
+function renderMockupEditor(container){
+  if(!container||!M||!M.mockups)return;
+  container.innerHTML='';
+  if(!Array.isArray(state.config.mockups))state.config.mockups=[];
+  var list=state.config.mockups;
+  var shapeKeys=Object.keys(M.mockups).filter(function(k){return k!=='none';});
+
+  function sliderRow(labelText,min,max,step,value,fmt,onInput){
+    var row=document.createElement('div');row.className='mk-row';
+    var top=document.createElement('div');top.className='mk-row-top';
+    var lab=document.createElement('span');lab.className='mk-label';lab.textContent=labelText;
+    var val=document.createElement('span');val.className='mk-val';val.textContent=fmt(value);
+    top.appendChild(lab);top.appendChild(val);
+    var inp=document.createElement('input');inp.type='range';inp.min=min;inp.max=max;inp.step=step;inp.value=value;
+    inp.addEventListener('input',function(){var v=parseFloat(inp.value);val.textContent=fmt(v);onInput(v);});
+    row.appendChild(top);row.appendChild(inp);
+    return row;
+  }
+
+  list.forEach(function(m,i){
+    /* fill any missing fields so older/partial entries still work */
+    var def=MOCKUP_DEFAULT_SLOTS[i]||MOCKUP_DEFAULT_SLOTS[0];
+    if(m.scale===undefined)m.scale=1.6;
+    if(m.x===undefined)m.x=def.x;
+    if(m.y===undefined)m.y=def.y;
+
+    var slot=document.createElement('div');slot.className='mockup-slot';
+    var head=document.createElement('div');head.className='mk-head';
+    var title=document.createElement('span');title.className='mk-title';title.textContent='Mockup '+(i+1);
+    var rm=document.createElement('button');rm.type='button';rm.className='btn-mini';rm.textContent='Remove';
+    rm.addEventListener('click',function(){
+      list.splice(i,1);
+      refreshMockupEditors();
+      renderHero(state.config,true);
+    });
+    head.appendChild(title);head.appendChild(rm);slot.appendChild(head);
+
+    var sel=document.createElement('select');sel.className='g-input';sel.style.cursor='pointer';
+    shapeKeys.forEach(function(k){var o=document.createElement('option');o.value=k;o.textContent=M.mockups[k].label;sel.appendChild(o);});
+    sel.value=m.type;
+    sel.addEventListener('change',function(){m.type=sel.value;renderHero(state.config,true);});
+    slot.appendChild(sel);
+
+    function live(){if(state.ctrl&&state.ctrl.setMockupTransform)state.ctrl.setMockupTransform(i,{scale:m.scale,x:m.x,y:m.y});}
+    slot.appendChild(sliderRow('Size',0.5,3,0.1,m.scale,function(v){return v.toFixed(1)+'×';},function(v){m.scale=v;live();}));
+    slot.appendChild(sliderRow('Horizontal',-90,90,1,m.x,function(v){return v<0?'Left '+(-v)+'%':v>0?'Right '+v+'%':'Centre';},function(v){m.x=v;live();}));
+    slot.appendChild(sliderRow('Vertical',-80,80,1,m.y,function(v){return v<0?'Down '+(-v)+'%':v>0?'Up '+v+'%':'Middle';},function(v){m.y=v;live();}));
+    container.appendChild(slot);
+  });
+
+  if(list.length<MAX_MOCKUPS){
+    var add=document.createElement('button');add.type='button';add.className='btn-prev-loader';
+    add.textContent=list.length===0?'+ Add a mockup':'+ Add another mockup ('+list.length+'/'+MAX_MOCKUPS+')';
+    add.addEventListener('click',function(){
+      var d=MOCKUP_DEFAULT_SLOTS[list.length];
+      /* prefer a shape not already used so multiple mockups differ by default */
+      var used=list.map(function(m){return m.type;});
+      var next=shapeKeys.filter(function(k){return used.indexOf(k)===-1;})[0]||shapeKeys[list.length%shapeKeys.length];
+      list.push({type:next,scale:1.6,x:d.x,y:d.y});
+      refreshMockupEditors();
+      renderHero(state.config,true);
+    });
+    container.appendChild(add);
+  }
+  var hint=document.createElement('p');hint.className='sublabel';
+  hint.textContent=list.length===0?'Optional. Add up to '+MAX_MOCKUPS+' floating objects to the scene.':'Positions are relative to the screen, so they hold steady as the camera moves.';
+  container.appendChild(hint);
+}
+
 var SAVE_KEY = 'heropipe_last_config';
 
 var isResetting = false;
@@ -1228,19 +1301,16 @@ function applyConfigToUI(cfg) {
   var fieldMap = {
     's-theme':'theme','s-mood':'mood','s-energy':'energy','s-colour':'colour',
     's-particles':'particles','s-camera':'camera','s-typo':'typography',
-    's-loader':'loaderStyle','s-transition':'transition','s-mockup':'mockup',
+    's-loader':'loaderStyle','s-transition':'transition',
     's-headline':'headline','s-sub':'subHeadline','s-cta':'cta','s-describe':'description',
-    'd-transition':'transition','d-mockup':'mockup',
+    'd-transition':'transition',
     'd-headline':'headline','d-sub':'subHeadline','d-cta':'cta','d-describe':'description',
   };
   Object.keys(fieldMap).forEach(function(id) {
     var el = document.getElementById(id);
     if (el && state.config[fieldMap[id]] !== undefined) el.value = state.config[fieldMap[id]];
   });
-  var sScale = document.getElementById('s-mockup-scale');
-  if (sScale && state.config.mockupScale !== undefined) sScale.value = state.config.mockupScale;
-  var dScale = document.getElementById('d-mockup-scale');
-  if (dScale && state.config.mockupScale !== undefined) dScale.value = state.config.mockupScale;
+  refreshMockupEditors();
 
   /* re-sync the visual card grids (theme/mood/colour/particle/camera/loader) */
   if (M) buildAllCards('d');
@@ -1253,6 +1323,7 @@ window.addEventListener('load',function(){
   /* restore last session BEFORE any UI is built, so every surface
      (cards, dropdowns, mobile sheet) starts from the saved state */
   var savedCfg = loadConfigFromStorage();
+  if (savedCfg) migrateLegacyMockup(savedCfg);
   var restored = false;
   if (savedCfg) {
     state.config = Object.assign({}, state.config, savedCfg);
@@ -1271,6 +1342,7 @@ window.addEventListener('load',function(){
   }
 
   wireStudio();
+  refreshMockupEditors();
   /* push restored values into Studio's static form fields too */
   if (restored) applyConfigToUI(state.config);
   setStatus('','Ready');
