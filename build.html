@@ -787,7 +787,7 @@ function previewLoader(){
 function showToast(msg){
   var t=document.createElement('div');
   t.textContent=msg;
-  t.style.cssText='position:fixed;top:calc(var(--nav-h) + 12px);left:50%;transform:translateX(-50%) translateY(-10px);background:var(--indigo);color:#fff;padding:0.65rem 1.2rem;border-radius:8px;font-family:Syne,sans-serif;font-size:0.82rem;font-weight:700;z-index:400;opacity:0;transition:opacity 0.3s,transform 0.3s;box-shadow:0 8px 24px rgba(75,59,255,0.4);pointer-events:none;';
+  t.style.cssText='position:fixed;top:calc(var(--nav-h) + 12px);left:50%;transform:translateX(-50%) translateY(-10px);background:var(--indigo);color:#fff;padding:0.65rem 1.2rem;border-radius:8px;font-family:Syne,sans-serif;font-size:0.82rem;font-weight:700;z-index:400;opacity:0;transition:opacity 0.3s,transform 0.3s;box-shadow:0 8px 24px rgba(75,59,255,0.4);pointer-events:none;max-width:88vw;text-align:center;line-height:1.35;';
   document.body.appendChild(t);
   requestAnimationFrame(function(){t.style.opacity='1';t.style.transform='translateX(-50%) translateY(0)';});
   setTimeout(function(){
@@ -1007,6 +1007,10 @@ function buildMobileStep(n){
     var trow=document.createElement('div');trow.className='typo-row';
     [{k:'light',l:'Light'},{k:'regular',l:'Regular'},{k:'bold',l:'Bold'},{k:'heavy',l:'Heavy'},{k:'ultrawide',l:'Wide'}].forEach(function(t){var b=document.createElement('button');b.className='typo-btn'+(t.k===state.config.typography?' selected':'');b.textContent=t.l;b.addEventListener('click',function(){trow.querySelectorAll('.typo-btn').forEach(function(x){x.classList.remove('selected');});b.classList.add('selected');state.config.typography=t.k;updateOverlay(state.config);});trow.appendChild(b);});
     tr.appendChild(trow);ws.appendChild(tr);
+    /* describe (used by AI Refine) */
+    var drow=document.createElement('div');drow.className='g-input-row';drow.style.marginTop='0.75rem';
+    drow.innerHTML='<label class="g-label">Describe your project <span style="font-weight:300;text-transform:none;letter-spacing:0;">(for AI Refine)</span></label><textarea class="g-input g-textarea" id="m-describe" placeholder="e.g. A community for indie game developers..."></textarea>';
+    ws.appendChild(drow);
     /* AI */
     var alab=document.createElement('div');alab.className='g-input-row';alab.style.marginTop='0.75rem';
     alab.innerHTML='<label class="g-label">AI Refine (optional)</label><div class="ai-row"><input type="password" class="ai-key" id="m-api-key" placeholder="Gemini API key"/><button class="btn-ai" id="m-btn-ai" disabled>Refine ✦</button></div><p class="sublabel">Free key at <a href="https://aistudio.google.com" target="_blank">aistudio.google.com</a></p>';
@@ -1018,6 +1022,8 @@ function buildMobileStep(n){
     body.appendChild(ws);
     /* wire inputs */
     setTimeout(function(){
+      var md=document.getElementById('m-describe');
+      if(md){md.value=state.config.description||'';md.addEventListener('input',function(){state.config.description=md.value;});}
       var mh=document.getElementById('m-headline');var ms2=document.getElementById('m-sub');var mc=document.getElementById('m-cta');
       if(mh){mh.value=state.config.headline||'';mh.addEventListener('input',function(){state.config.headline=mh.value;updateOverlay(state.config);});}
       if(ms2){ms2.value=state.config.subHeadline||'';ms2.addEventListener('input',function(){state.config.subHeadline=ms2.value;updateOverlay(state.config);});}
@@ -1063,11 +1069,39 @@ document.getElementById('sheet-backdrop').addEventListener('click',mobileCloseSh
 document.getElementById('mobile-fab').addEventListener('click',mobileOpenSheet);
 
 /* ══ AI REFINE ══ */
+/* the describe text lives in a different field per mode; read the active one */
+function activeDescription(){
+  var id = isMobile ? 'm-describe' : (state.mode==='studio' ? 's-describe' : 'd-describe');
+  var el = document.getElementById(id);
+  var v = el ? el.value.trim() : '';
+  return v || state.config.description || '';
+}
+
+var REFINE_FIELDS=['theme','mood','energy','colour','particles','camera','typography','loaderStyle','transition','mockups'];
+
 function runRefine(apiKey,cb){
-  if(!apiKey||!state.config||!window.HeroPipe)return;
-  setStatus('loading','Refining…');
-  var desc=(document.getElementById('d-describe')||document.getElementById('m-describe')||{value:''}).value||'';
-  window.HeroPipe.refine(state.config,apiKey,desc,function(r){state.config=Object.assign(state.config,r);renderHero(state.config);setStatus('ready','AI Refined ✦');if(cb)cb(r);},function(err){setStatus('error','AI: '+err);if(cb)cb();});
+  if(!apiKey||!state.config||!window.HeroPipe){if(cb)cb();return;}
+  /* Studio only reads its controls on Generate, so pick up any unsaved edits first */
+  if(!isMobile&&state.mode==='studio')state.config=collectStudioConfig();
+  var desc=activeDescription();
+  state.config.description=desc;
+  setStatus('loading','Refining with AI…');
+  window.HeroPipe.refine(state.config,apiKey,desc,function(result,report){
+    var changed=REFINE_FIELDS.filter(function(k){return JSON.stringify(result[k])!==JSON.stringify(state.config[k]);});
+    state.config=result;
+    applyConfigToUI(state.config);   /* sync dropdowns, cards and mockup editors */
+    renderHero(state.config);
+    setStatus('ready','AI Refined ✦');
+    var msg=changed.length?'✦ AI updated: '+changed.join(', '):'✦ AI kept your settings — they already fit';
+    var n=report&&report.rejected?report.rejected.length:0;
+    if(n)msg+=' ('+n+' invalid suggestion'+(n>1?'s':'')+' ignored)';
+    showToast(msg);
+    if(cb)cb(result);
+  },function(err){
+    setStatus('error','AI: '+err);
+    showToast('AI refine failed: '+err);
+    if(cb)cb();
+  });
 }
 
 /* ══ DESKTOP GUIDED WIRING ══ */
@@ -1080,6 +1114,8 @@ function wireDesktopGuided(){
   if(dTrans){dTrans.value=state.config.transition;dTrans.addEventListener('change',function(){state.config.transition=dTrans.value;});}
   /* mockup selector */
   /* mockup editor is rendered by refreshMockupEditors() */
+  var dDesc=document.getElementById('d-describe');
+  if(dDesc){dDesc.value=state.config.description||'';dDesc.addEventListener('input',function(){state.config.description=dDesc.value;});}
   /* prev/next */
   document.getElementById('d-btn-prev').addEventListener('click',function(){desktopGoToStep(state.step-1);});
   /* d-btn-next click handling is owned by desktopGoToStep() via onclick — no addEventListener here to avoid double-firing */
@@ -1113,9 +1149,10 @@ function wireCursorToggles(prefix){
   });
 }
 
-function wireStudio(){
-  document.getElementById('s-btn-generate').addEventListener('click',function(){
-    state.config={
+/* reads every Studio control into a config. Used by Generate AND Refine, so
+   Refine never works from stale settings. */
+function collectStudioConfig(){
+  return {
       theme:document.getElementById('s-theme').value,mood:document.getElementById('s-mood').value,
       energy:document.getElementById('s-energy').value,colour:document.getElementById('s-colour').value,
       particles:document.getElementById('s-particles').value,camera:document.getElementById('s-camera').value,
@@ -1126,6 +1163,11 @@ function wireStudio(){
       subHeadline:document.getElementById('s-sub').value,cta:document.getElementById('s-cta').value||'Get started',
       description:document.getElementById('s-describe').value,
     };
+}
+
+function wireStudio(){
+  document.getElementById('s-btn-generate').addEventListener('click',function(){
+    state.config=collectStudioConfig();
     renderHero(state.config);
   });
   document.getElementById('s-api-key').addEventListener('input',function(){state.apiKey=this.value.trim();document.getElementById('s-btn-refine').disabled=!state.apiKey;});

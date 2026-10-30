@@ -528,6 +528,17 @@ window.HeroPipeManifest = {
     ────────────────────────────────────────────────────────── */
   },
 
+  /* ── ENTRY LOADERS ─────────────────────────────────────────
+     Listed here so the AI refine step knows they exist. The animations
+     themselves live in loader.js. */
+  loaders: {
+    bloom:  { label: 'Bloom',  description: 'A circular iris opens from the centre. Cinematic and elegant.' },
+    fade:   { label: 'Fade',   description: 'A simple dissolve. Clean and universal.' },
+    wipe:   { label: 'Wipe',   description: 'A directional reveal sweeping across the screen. Crisp and editorial.' },
+    bars:   { label: 'Bars',   description: 'Horizontal strips retract to reveal the scene. Bold and rhythmic.' },
+    glitch: { label: 'Glitch', description: 'A brief digital noise burst. Edgy and technical, suits gaming, crypto and tech.' },
+  },
+
   typography: {
     light: {
       label: 'Light',
@@ -577,26 +588,42 @@ window.HeroPipeManifest = {
     float:    { label: 'Float',    description: 'Very slow, imperceptible transition.', params: { duration: 2.0, ease: 'sine.inOut' } },
   },
 
-  /* ── GEMINI SYSTEM PROMPT ────────────────────────────────── */
+  /* The AI prompt is generated from this manifest, so adding or removing
+     a capability above updates what the AI knows automatically. */
   geminiSystemPrompt: function() {
+    var Mf = window.HeroPipeManifest;
+    function list(table) {
+      return Object.keys(table).filter(function(k) { return k !== 'none'; }).map(function(k) {
+        return '  - ' + k + ': ' + String(table[k].description || '').split('.')[0];
+      }).join('\n');
+    }
     return [
-      "You are the AI refinement layer for Hero's Pipe, a scroll-driven hero section engine.",
-      "Your job is to take an existing config object and improve it based on the user's project description.",
-      "You MUST only use values that exist in the manifest. Do not invent new keys or values.",
-      "Return ONLY a valid JSON object — no explanation, no markdown, no backticks.",
-      "The JSON must have these keys: theme, mood, energy, colour, particles, camera, typography.",
-      "Values must exactly match the keys defined in the manifest below.",
-      "Consider: does the colour palette suit the mood? Does the camera path match the energy?",
-      "Does the particle system reinforce the theme? Make the combination feel intentional.",
+      "You are the art director for Hero's Pipe, a scroll-driven WebGL hero-section engine.",
+      "Given the current settings and a project description, return an improved set of settings.",
       "",
-      "VALID VALUES:",
-      "theme: " + Object.keys(window.HeroPipeManifest.themes).join(', '),
-      "mood: " + Object.keys(window.HeroPipeManifest.moods).join(', '),
-      "energy: " + Object.keys(window.HeroPipeManifest.energy).join(', '),
-      "colour: " + Object.keys(window.HeroPipeManifest.colours).join(', '),
-      "particles: " + Object.keys(window.HeroPipeManifest.particles).join(', '),
-      "camera: " + Object.keys(window.HeroPipeManifest.cameras).join(', '),
-      "typography: " + Object.keys(window.HeroPipeManifest.typography).join(', '),
+      "OUTPUT: ONLY one JSON object. No prose, no markdown, no code fences. Exactly these keys:",
+      '{ "theme": "", "mood": "", "energy": "", "colour": "", "particles": "", "camera": "", "typography": "", "loaderStyle": "", "transition": "", "mockups": [ { "type": "", "scale": 1.6, "x": 62, "y": 12 } ] }',
+      "",
+      "RULES:",
+      "- Use ONLY the option keys listed below, spelled exactly. Never invent a value.",
+      "- Make the choices cohere: colour suits the mood; camera and transition suit the energy; the particle system reinforces the theme; the loader matches the tone (e.g. glitch for gaming/crypto/tech, bloom or fade for elegant brands).",
+      "- Let the project description drive the choices. If the current settings already fit it, keep them.",
+      "- mockups: 0 to 3 floating 3D objects. Use [] (none) unless a tangible object genuinely suits the project.",
+      "  scale is 0.5 to 3. x and y are percentages of half the screen from its centre: x -90 (left) to 90 (right), y -80 (down) to 80 (up).",
+      "  The headline text card sits in the middle of the screen. NEVER place a mockup where |x| < 55 and y is between -35 and 20.",
+      "  Good placements: x of 55 to 75 or -55 to -75 with y 5 to 20; or x near 0 with y near -50.",
+      "",
+      "OPTIONS:",
+      "theme:", list(Mf.themes),
+      "mood:", list(Mf.moods),
+      "energy:", list(Mf.energy),
+      "colour:", list(Mf.colours),
+      "particles:", list(Mf.particles),
+      "camera:", list(Mf.cameras),
+      "typography:", list(Mf.typography),
+      "loaderStyle:", list(Mf.loaders),
+      "transition:", list(Mf.transitions),
+      "mockups.type:", list(Mf.mockups),
     ].join('\n');
   },
 

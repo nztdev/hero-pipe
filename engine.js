@@ -810,51 +810,48 @@
   function refine(config, apiKey, description, onSuccess, onError) {
     if (!apiKey) { if (onError) onError('No API key provided'); return; }
 
-    var systemPrompt = M.geminiSystemPrompt();
-    var userPrompt   = [
-      'Current config:',
-      JSON.stringify({
-        theme:      config.theme,
-        mood:       config.mood,
-        energy:     config.energy,
-        colour:     config.colour,
-        particles:  config.particles,
-        camera:     config.camera,
-        typography: config.typography,
-      }, null, 2),
+    var current = {
+      theme: config.theme, mood: config.mood, energy: config.energy, colour: config.colour,
+      particles: config.particles, camera: config.camera, typography: config.typography,
+      loaderStyle: config.loaderStyle || 'bloom', transition: config.transition || 'dissolve',
+      mockups: _normalizeMockups(config),
+    };
+    var userPrompt = [
+      'Current settings:',
+      JSON.stringify(current, null, 2),
       '',
-      description ? 'Project description: ' + description : 'No project description provided.',
+      description ? 'Project description: ' + description : 'No project description was provided; refine for coherence only.',
       '',
-      'Improve this config. Return only valid JSON with the same 7 keys.',
+      'Return the improved settings as one JSON object with exactly the keys listed in the instructions.',
     ].join('\n');
 
-    fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey, {
+    fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + encodeURIComponent(apiKey), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        system_instruction: { parts: [{ text: systemPrompt }] },
+        system_instruction: { parts: [{ text: M.geminiSystemPrompt() }] },
         contents: [{ parts: [{ text: userPrompt }] }],
-        generationConfig: { temperature: 0.4, maxOutputTokens: 256 },
+        generationConfig: { temperature: 0.4, maxOutputTokens: 800, responseMimeType: 'application/json' },
       }),
     })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      var text = '';
-      try { text = data.candidates[0].content.parts[0].text.trim(); } catch(e) { throw new Error('Unexpected Gemini response format'); }
-      /* strip markdown fences if present */
-      text = text.replace(/^```[a-z]*\n?/i, '').replace(/\n?```$/,'').trim();
-      var refined = JSON.parse(text);
-      /* merge refined values into original config, keep copy fields */
-      var result = Object.assign({}, config, {
-        theme:      refined.theme      || config.theme,
-        mood:       refined.mood       || config.mood,
-        energy:     refined.energy     || config.energy,
-        colour:     refined.colour     || config.colour,
-        particles:  refined.particles  || config.particles,
-        camera:     refined.camera     || config.camera,
-        typography: refined.typography || config.typography,
+    .then(function(r) {
+      return r.json().then(function(data) {
+        if (!r.ok || data.error) {
+          throw new Error((data.error && data.error.message) || ('Gemini request failed (' + r.status + ')'));
+        }
+        return data;
       });
-      if (onSuccess) onSuccess(result);
+    })
+    .then(function(data) {
+      var cand = data.candidates && data.candidates[0];
+      if (!cand || !cand.content || !cand.content.parts || !cand.content.parts.length) {
+        var why = (data.promptFeedback && data.promptFeedback.blockReason) || (cand && cand.finishReason) || 'empty reply';
+        throw new Error('Gemini returned no usable answer (' + why + ')');
+      }
+      var text = cand.content.parts.map(function(p) { return p.text || ''; }).join('');
+      var check = sanitizeRefinement(_extractJSON(text));
+      var result = Object.assign({}, config, check.applied);
+      if (onSuccess) onSuccess(result, { applied: check.applied, rejected: check.rejected });
     })
     .catch(function(e) {
       console.error('[HeroPipe] Gemini error:', e);
@@ -1112,6 +1109,69 @@
     return out;
   }
 
+  /* ── AI OUTPUT VALIDATION ──
+     Gemini's reply is untrusted input. Only values that exist in the
+     manifest are accepted, numbers are clamped, and mockups are kept
+     off the central text card. Anything rejected is reported, never
+     silently applied. */
+  var _TEXT_ZONE = { x: 55, yMin: -35, yMax: 20 };
+  function _clamp(v, lo, hi, fallback) {
+    v = parseFloat(v);
+    return isFinite(v) ? Math.min(hi, Math.max(lo, v)) : fallback;
+  }
+  function _extractJSON(text) {
+    text = String(text || '').replace(/```[a-z]*/gi, '');
+    var a = text.indexOf('{'), b = text.lastIndexOf('}');
+    if (a === -1) throw new Error('Gemini did not return JSON');
+    if (b <= a) throw new Error('Gemini returned malformed JSON (the reply may have been cut off)');
+    try { return JSON.parse(text.slice(a, b + 1)); }
+    catch (e) { throw new Error('Gemini returned malformed JSON (the reply may have been cut off)'); }
+  }
+  function sanitizeRefinement(raw) {
+    var applied = {}, rejected = [];
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+      return { applied: applied, rejected: ['reply was not a settings object'] };
+    }
+    var tables = { theme: 'themes', mood: 'moods', energy: 'energy', colour: 'colours',
+                   particles: 'particles', camera: 'cameras', typography: 'typography',
+                   loaderStyle: 'loaders', transition: 'transitions' };
+    Object.keys(tables).forEach(function(field) {
+      if (raw[field] === undefined) return;
+      var table = M[tables[field]] || {};
+      if (typeof raw[field] === 'string' && Object.prototype.hasOwnProperty.call(table, raw[field])) {
+        applied[field] = raw[field];
+      } else {
+        rejected.push(field + ' "' + raw[field] + '"');
+      }
+    });
+    if (raw.mockups !== undefined) {
+      if (!Array.isArray(raw.mockups)) {
+        rejected.push('mockups (expected a list)');
+      } else {
+        var out = [];
+        for (var i = 0; i < raw.mockups.length; i++) {
+          var m = raw.mockups[i];
+          if (out.length >= 3) { rejected.push('extra mockups beyond 3'); break; }
+          if (!m || typeof m.type !== 'string' || m.type === 'none' ||
+              !Object.prototype.hasOwnProperty.call(M.mockups, m.type)) {
+            rejected.push('mockup "' + (m && m.type) + '"');
+            continue;
+          }
+          var slot = _MOCKUP_DEFAULT_SLOTS[out.length];
+          var x = _clamp(m.x, -90, 90, slot.x), y = _clamp(m.y, -80, 80, slot.y);
+          if (Math.abs(x) < _TEXT_ZONE.x && y > _TEXT_ZONE.yMin && y < _TEXT_ZONE.yMax) {
+            /* would sit behind the text card: push it out to a side */
+            x = x < 0 ? -62 : x > 0 ? 62 : (out.length % 2 === 0 ? 62 : -62);
+          }
+          out.push({ type: m.type, scale: Math.round(_clamp(m.scale, 0.5, 3, 1.6) * 10) / 10,
+                     x: Math.round(x), y: Math.round(y) });
+        }
+        applied.mockups = out;
+      }
+    }
+    return { applied: applied, rejected: rejected };
+  }
+
   /* hex to hue (0-1) for section-transition colour blending */
   function _hexToHue(hex) {
     hex = hex.replace('#','');
@@ -1165,6 +1225,7 @@
     refine:  refine,
     export:  exportHero,
     previewExport: previewExportedHero,
+    sanitizeRefinement: sanitizeRefinement,
     resolve: resolve,
     stop:    stopCurrent,
     manifest: M,
